@@ -1,0 +1,41 @@
+1. Spinup 2 ec2 instance as master and slave
+2. Install jenkins on master node, check below url 
+https://www.jenkins.io/doc/tutorials/tutorial-for-installing-jenkins-on-AWS/
+3. make sure you allow port 22 and 80, 8080 in SG
+4. login to master box
+5. sudo su
+6. vi /etc/passwd -> goto end of file 
+change jenkins/false to jenkins/bash
+save file
+7. passwd jenkins -> put password 
+8. exit as root
+9. su jenkins -> enter jenkins password set in step number 7
+10. cd ~ (to go to jenkins home directory)
+11. cd .ssh
+12. ssh-keygen -> press enter for default values
+
+Slave node configuration
+13. connect to slave node
+14. sudo su
+15. useradd jenkins
+16. passwd jenkins -> put password
+17. visudo
+jenkins	ALL=(ALL)	NOPASSWD: ALL
+save file
+18. vi /etc/ssh/ssh_config
+make PasswordAuthentication Yes
+19. service sshd reload
+20. exit as root
+21. su jenkins (put password)
+22. cd .ssh -> ssh-keygen -> accept default values
+
+switch to master node
+23. su jenkins
+24. ssh-copy-id jenkins@slavenode-ip -> password
+25. try ssh jenkins@slavenode-ip -> should not ask password because you copied key for passwordless auth
+
+Visit jenkins page
+26. goto manage jenkins -> Manager nodes and clouds -> add node
+27. put slave nodes details -> choose launch method via ssh -> add credential with ssh with private key
+make sure you are copying username as jenkins (which is being used in above steps) and master node private key
+28. test node connection
