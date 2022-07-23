@@ -20,6 +20,11 @@ pipeline{
         sh 'java -jar /home/jenkins/workspace/STAGE/Jenkins-Pipeline/target/my-app-1.0-SNAPSHOT.jar'
           }
        }
+    stage('Deliver'){
+     steps{
+         sh './jenkins/scripts/deliver.sh'
+          }
+       }
   }
 } 
      
