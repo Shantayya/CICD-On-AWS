@@ -16,7 +16,7 @@ pipeline{
          }
     stage('Deploy'){
      steps{
-        echo '#########DEPLOY JAR########'
+        echo '#########DEPLOY  JAR########'
         sh 'java -jar /home/jenkins/workspace/STAGE/Jenkins-Pipeline/target/my-app-1.0-SNAPSHOT.jar'
         echo '###########################'
           }
