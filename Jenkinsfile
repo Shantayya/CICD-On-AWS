@@ -1,8 +1,8 @@
 pipeline{
  agent any
    tools{
-   tool name: 'Dev-Maven', type: 'maven'
-       }
+    maven 'Dev-Maven'   
+    }
    stages{
      stage('Build'){
       steps{
