@@ -34,6 +34,12 @@ switch to master node
 24. ssh-copy-id jenkins@slavenode-ip -> password
 25. try ssh jenkins@slavenode-ip -> should not ask password because you copied key for passwordless auth
 
+Even After copying ssh-id if asks for password then follow below steps,
+The following permissions are needed to be checked on master and slave machines:
+The .ssh folder: 700 (drwx------)
+The public key: 644 (-rw-r--r--)
+The private key: 600 (-rw-------)
+
 Visit jenkins page
 26. goto manage jenkins -> Manager nodes and clouds -> add node
 27. put slave nodes details -> choose launch method via ssh -> add credential with ssh with private key
