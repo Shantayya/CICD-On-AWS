@@ -26,8 +26,8 @@ save file
 make PasswordAuthentication Yes
 19. service sshd reload
 20. exit as root
-21. su jenkins (put password)
-22. cd .ssh -> ssh-keygen -> accept default values
+21. Make sure to install java
+22. sudo amazon-linux-extras install java-openjdk11 -y
 
 switch to master node
 23. su jenkins
