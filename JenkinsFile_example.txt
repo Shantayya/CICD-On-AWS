@@ -1,0 +1,110 @@
+pipeline{
+agent any
+environment{
+   Name="Shantayya"
+ }
+stages{
+  stage('Name'){
+   environment{
+    Name="shankar"
+    }
+ stapes{
+  echo "hello ${env.Name}"
+       }
+  }
+ }
+}
+
+pipeline{
+ agent {
+  label 'slave'            //can be master, slave or container, label or any 
+       }
+  tools{            //If we want to run specific version of tools in pipeline for specific job then we use tools. We can also use tools in percular stage
+        maven 'Maven3.6.1'
+       }
+  environment{
+     passwd=credentials('DOCKER') //provide secret text in credentials in jenkins so can use then in jobs like env variable
+     tools='Jenkins'
+             }
+  parameters{
+    password(name:'Pass')  //promt for password
+    choice(Name:'ENV', choices:['Dev','STAGE','PROD'], description:'')
+    string(name:'example', defaultValue:'testing', description:'')
+           }
+  options{buildDiscarder(logRotator(numToKeepStr('5'))}
+  discardCuncorruntBuilds()
+  timestamps()
+  triggers{
+           cron('* * * * *')   // job wil run every minute)
+           pollSCM('* * * * *') //trigger job depend upon changes in code
+ stages{
+     stage('Build'){
+           when{
+                 changelog 'build'         //when scm commit massege contains build 
+                 or
+                 changeset '*.py'          //based on commited files
+               }
+
+           options{
+                   retry(3)
+                   timeout(time:5, unit: 'minutes')
+                  }
+           steps{
+                  retry(3){
+                  sh 'mvn clean package' 
+                          }
+                }
+           post{  //we have always, changed, fixed, Regression, success, failure, unstable,aborted etc actions under post
+                success{      
+                         echo "build success"
+                         archiveArtifacts artifacts: "**/target/*.war"
+                       }
+               }
+             }
+      stage('Deploy'){
+          failFast true         //If one stage failed in parallel block then next stage still constinues. but if we wnat to stop stage in parallel then we should use failFast.
+          parallel{ 
+              stage('Deploy STAGE'){
+                         steps{
+                              dir('STAGE'){     //dir will create new STAGE directory inside workspace/jobname/ if STAGE dir not exist or used to move inside STAGE directory if exist
+                                  script{ //use groovy conditional functionalities using script
+                                        for(i=0;i<5;i++){
+                                            println i
+                                            }
+
+                                      when{     //works as if condition. but has advanced in-built condtions
+                                              equals expected:'STAGE', actual:"$ENV"               //when want to execut ebased on equal condition
+                                          }
+ 
+                                        if("$ENV" == 'STAGE'){
+                                         agent {
+                                                     label 'STAGE'
+                                                }
+                                         echo "hello PROD"
+                                             }
+                                        currentBuild.displayName="ApacheImage"  //change build number to name
+                                        currentBuild.description="This is dockerfile image"
+                                      }
+                                  } cleanWS()     //clean workspace
+                               }
+                       }
+               stage('DEPLOY PROD'){ 
+                   //read input from specific user
+                   input{
+                           massege "Press Proceed to continue"
+                           submitter "Shantayya, Rahul"
+                           parameters{ string(name:'User', description:'only Shantayya or Rahul jas Permission')}
+                         }
+                                     
+                    steps{
+                  echo "${User} said ok"
+                  input("Please approve the build")        //ask for user approval i.e proceed or abort
+                  build(job:'job1', propagate:'false')   //build is used to trigger other jobs. propagate-> if job1 fails pipeline will continue to run job2
+                  build(job2)
+                  build(job:'builder-job', parameters:[string(name:'nodes', value:'Linux'),
+                                                        string(name:'version', value:'8')]) //builder-job is already created with parameters
+                           }
+                        }
+                }
+        }
+ }
