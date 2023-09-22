@@ -1,0 +1,53 @@
+git add  --> add to staging area
+git commit -m "--" --> add to local repo
+git init  --> used to initialize the project. .git folder contains the staging(blob object) and local repo(commit and tree object) for versioning. 
+git config --local(specific to project) or --system or --global(all projects) user.name ""
+git config --local(specific to project) or --global(all projects) user.email ""   --> to configure git credentials. credentials stored in .git/config file
+
+chached/indexed/staged  --> means same. files are tracked for versioning at staging area.
+git rm --cached */specific file 	--> unstage file
+git status	--> to check file tracking status
+
+git rm file --> removes file from local and staging area
+git log master	--> check git commands history
+
+git cat-file -p <commit-hash> 	--> it will show you blob objects 
+
+git switch <commit hash to revert to>	--> revert changes to previous commit. rollback changes but not recommended option
+
+
+---Branching----
+Branch is a referrence to a commit. branch gets created in .git/refs/head file.
+Note: When ever we create new branch, new branch will always points to last commit on master branch. 
+
+	master(12a3hsnxg commit)	master(sn31a5hx commit)
+---O-------O------O--------------------O
+a.txt	   ↓b.txt d.txt	  	       e.txt	 
+  	   O-------O----------O
+	   c.txt   f.txt     g.txt	
+feature1(9djs12nhd commit)   feature1(1ahsn53ce commit) 
+
+master branch: a.txt		feature branch: a.txt + b.txt
+  	       b.txt				c.txt
+	       d.txt				f.txt
+ 	       e.txt				g.txt
+
+git branch				--> show available brances in git
+git branch <branch-name>		--> to create new branch
+git switch/checkout <branch-name>	--> switch to new branch
+
+git reset HEAD~<number>			--> number of commits to be restored
+git reset HEAD~1 --soft			--> restore changes from last commit. here file will be not be unstaged and wil be present in current directory but removed 					from local repo.
+git reset HEAD~1 			--> restore changes from last commit. here file will be unstaged  and removed from local repo but wil be present in current 					directory.
+git reset HEAD~1 --hard			--> restore changes from last commit. delete file from pwd and staging area. permanent restore. 
+
+
+git reflog				--> provides commit hash codes history
+
+---undo reset changes----
+git checkout -b <new branch name> <hash>
+git witch master
+git merge <new branch name> 
+git log
+
+
