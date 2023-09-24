@@ -50,4 +50,67 @@ git witch master
 git merge <new branch name> 
 git log
 
+---fast forward merge----
+moves head pointer of master branch<target branch> to point to same commits as the feature branch<Source branch>. 
+	master(12a3hsnxg commit)	
+---O-------O
+a.txt	   ↓b.txt 	 
+  	   O-------O----------O
+	   c.txt   f.txt     g.txt	
+feature1(9djs12nhd commit)   feature1(1ahsn53ce commit) 
+								master(1ahsn53ce commit)
+git checkout master    ----O--------O-----------O-----------O---------O
+git merge feature1      a.txt      b.txt      c.txt         f.txt     g.txt
+
+
+---delete feature branch---
+git branch -d feature1		--> make sure you are in diff branch whle executing this command. -D force delete
+git checkout -b feature1 <above command hash>		--> to recover deleted feature1 branch
+
+
+-------3 way merge------
+	master(12a3hsnxg commit)	master(sn31a5hx commit)
+---O-------O------O--------------------O
+a.txt	   ↓b.txt d.txt	  	       e.txt	 
+  	   O-------O----------O
+	   c.txt   f.txt     g.txt	
+feature1(9djs12nhd commit)   feature1(1ahsn53ce commit) 
+
+git branch master
+git merge feature1		--> merge the feature1 with master creating 2 parent commits (master commit and feature commit). If b.txt is updated by master and 				feature1 branch then conflict will arise which can be resolved manually while merging feature branch with master. 
+
+
+Note: its better to use merge to integrate changes when 
+1. want to preserve original commit history for source and target branch
+2. working on shared branches
+3. when simplicity and clarity are more important than maintaining a linear history.
+
+----rebase----------
+	master(12a3hsnxg commit)	master(sn31a5hx commit)
+---O-------O------O--------------------O
+a.txt	   ↓b.txt d.txt	  	       e.txt	 
+  	   O-------O----------O
+	   c.txt   f.txt     g.txt	
+feature1(9djs12nhd commit)   feature1(1ahsn53ce commit) 
+
+
+Rebase operation allows you to integrate changes from one branch to other by moving or applying series of commits from source branch onto tip of target branch.
+advantage: 
+1. maintain linear commit history (can drop few commits as well. git rebase -i master)
+2. avoid merge commits in history
+3. preserve clean and feature based branching model 
+4. resolving conflicts in controlled manner (conflicts resolved for each individual commit) 
+disadvantage:
+1. if you are working on shared branches then it can cause conflicts and confusion for your collabrators. so should be used with caution as it rewrites commit history. 
+
+git branch	--> shows HEAD on feature1 
+git rebase master				--> if there is any conflict then need manual intervention
+git add <conflict file> 
+git rebase --continue
+git checkout master
+git merge feature1
+
+git rebase <hash> 		--> it will rebase to perticular commit instead onto tip of target commit
+
+
 
