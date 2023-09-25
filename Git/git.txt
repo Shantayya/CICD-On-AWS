@@ -113,4 +113,17 @@ git merge feature1
 git rebase <hash> 		--> it will rebase to perticular commit instead onto tip of target commit
 
 
+------stash-------
+stash is a temporary storage area where you can save changes that you have made to current working directory but dont want to commit to the repo yet. Its a handy feature when you want to work on different branch but dont want to loose changs you have made. 
+
+git stash		--> this command stash only tracked files
+git stash list		--> list stashed changes
+git stash -u		--> u-> --include-untracked. stash tracked + untracked files.
+git stash pop		--> retreive stashed changes by deleting files from temp dir.
+git stash save -m ""	--> stash change with more descriptive messages
+git stash apply		--> retrive stashed changes but do not remove it from stash stack. 
+git stash drop 		--> after successfully applied changes if you longed required them can remove from stash entry. 
+
+
+
 
