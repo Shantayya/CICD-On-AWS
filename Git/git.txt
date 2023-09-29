@@ -5,7 +5,10 @@ git config --local(specific to project) or --system or --global(all projects) us
 git config --local(specific to project) or --global(all projects) user.email ""   --> to configure git credentials. credentials stored in .git/config file
 
 chached/indexed/staged  --> means same. files are tracked for versioning at staging area.
-git rm --cached */specific file 	--> unstage file
+git rm --cached */specific file 	--> remove all tracked files from cache 
+or 
+git restore --staged <filename>		--> unstage files
+
 git status	--> to check file tracking status
 
 git rm file --> removes file from local and staging area
@@ -125,5 +128,40 @@ git stash apply		--> retrive stashed changes but do not remove it from stash sta
 git stash drop 		--> after successfully applied changes if you longed required them can remove from stash entry. 
 
 
+---.gitignore-----
+use to ignore the files or directories while getting tracked in repo. 
+vi .gitignore
+*.log
+/home/orafmw/info		--> all files in info folder plus .log extension files are being ignored
+
+Note: If we want to ignore already commited files then remove file from cache
+git rm -r --cached <filename>
 
 
+-------collaboration-------
+git clone <url>
+
+---clone private repo----
+1. repo settings --> add collaborator github account name--> authorize account
+2. collborator accepts invitation
+3. collaborator execute git clone <repo url> --> authentication pop-up --> click on code login --> will see code 
+4. open github.com/login/device  --> put the code from above step and authenticate
+
+tracking branches are local branches representing remote branches. origin is a defualt name for the remote repo URL. 
+git branch -r 		--> list remote branches in local
+git branch -a		--> list all remote and local branches
+
+git remote add <remote name> <remote URL>		--> add new remote to local. default remote is origin and you can find the same in .git/config file
+git remote rename <remote name>
+git remote remove <remote name>		
+
+git remote show origin				--> provides detailed information about remote repo named origin.
+
+
+-----fetch------
+git fetch			--> retrive the changes from remote repo
+git fetch --prune		--> deletes remote tracking braches that no longer exist on remote repo without deleting local files from that branch.
+git pull			---> fetch + merge(fast forward or three way) 
+git pull --rebase		--> same as clone repo and then we commit one by one after that. git pulls changes from repo and then apply local commits one by one after that.
+
+ 		
