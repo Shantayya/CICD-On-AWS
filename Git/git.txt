@@ -164,4 +164,23 @@ git fetch --prune		--> deletes remote tracking braches that no longer exist on r
 git pull			---> fetch + merge(fast forward or three way) 
 git pull --rebase		--> same as clone repo and then we commit one by one after that. git pulls changes from repo and then apply local commits one by one after that.
 
- 		
+-----push----
+git push 			--> push the changes to remote repo
+git push --set-upstream origin feature1 		--> create feature1 branch in remote repo and push all changes of feature1 to remote repo.  
+
+pull request	--> request to review the code before merging into main remote branch 
+1. merge		--> create parent commit hierarchy 
+2. squash and merge	--> combines all commits into one
+3. rebase and merge	--> rebase all feature1 commits and then merge with main branch. 
+
+git push origin :feature1	--> to delete feature1 branch from remote repo
+git branch -D feature1		--> remote branch from local
+
+-----Devide and Conquer ------
+Divide: Instead of making changes directly in the main branch (e.g., master), developers create feature branches to work on specific tasks or features.
+Conquer: Each feature branch represents a focused, isolated set of changes. Once the changes are complete and tested, they can be merged back into the main branch.
+
+---forking project-----
+allows anyone to contribute to project without having write access. freely experiment with changes without affecting original project. 
+
+Note: Both cloning and forking are mechanisms in Git that allow you to obtain a copy of a repository, but they serve different purposes and are typically used in different scenarios.
