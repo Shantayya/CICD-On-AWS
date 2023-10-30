@@ -1,15 +1,20 @@
+Git: version control system helps to track changes in the code. popular + open source + fst and scalable + heps to collaborate
+GitHub: cloud web interface helps to store  and manage code using git.  
+
+gt clone <repo url> 	--> cloning repo on local machine
 git add  --> add to staging area
-git commit -m "--" --> add to local repo
+git commit -m "--" --> add to local repo. record of change
 git init  --> used to initialize the project. .git folder contains the staging(blob object) and local repo(commit and tree object) for versioning. 
 git config --local(specific to project) or --system or --global(all projects) user.name ""
 git config --local(specific to project) or --global(all projects) user.email ""   --> to configure git credentials. credentials stored in .git/config file
+git config --list
 
 chached/indexed/staged  --> means same. files are tracked for versioning at staging area.
 git rm --cached */specific file 	--> remove all tracked files from cache 
 or 
 git restore --staged <filename>		--> unstage files
 
-git status	--> to check file tracking status
+git status	--> to check file tracking status (1.untracked	2.modified	3.staged	4.unmodified) 
 
 git rm file --> removes file from local and staging area
 git log master	--> check git commands history
@@ -39,17 +44,19 @@ git branch				--> show available brances in git
 git branch <branch-name>		--> to create new branch
 git switch/checkout <branch-name>	--> switch to new branch
 
-git reset HEAD~<number>			--> number of commits to be restored
+git reset <filename> or get reset	--> reset staged changes	
+git reset HEAD~<number>			--> reset commited changes. number of commits to be restored
 git reset HEAD~1 --soft			--> restore changes from last commit. here file will be not be unstaged and wil be present in current directory but removed 					from local repo.
 git reset HEAD~1 			--> restore changes from last commit. here file will be unstaged  and removed from local repo but wil be present in current 					directory.
 git reset HEAD~1 --hard			--> restore changes from last commit. delete file from pwd and staging area. permanent restore. 
 
-
+git reset <hash>			--> reset multiple commits 
 git reflog				--> provides commit hash codes history
 
 ---undo reset changes----
-git checkout -b <new branch name> <hash>
-git witch master
+git checkout -b <new branch name> <hash>			--> hash code of reset commit
+git switch master
+git diff feature1						--> shows difference between feature1 and master branch
 git merge <new branch name> 
 git log
 
@@ -81,7 +88,7 @@ feature1(9djs12nhd commit)   feature1(1ahsn53ce commit)
 
 git branch master
 git merge feature1		--> merge the feature1 with master creating 2 parent commits (master commit and feature commit). If b.txt is updated by master and 				feature1 branch then conflict will arise which can be resolved manually while merging feature branch with master. 
-
+conflicts: its an event that takes place when git unable to automatically resolve differences in code between 2 commits.
 
 Note: its better to use merge to integrate changes when 
 1. want to preserve original commit history for source and target branch
@@ -95,7 +102,6 @@ a.txt	   ↓b.txt d.txt	  	       e.txt
   	   O-------O----------O
 	   c.txt   f.txt     g.txt	
 feature1(9djs12nhd commit)   feature1(1ahsn53ce commit) 
-
 
 Rebase operation allows you to integrate changes from one branch to other by moving or applying series of commits from source branch onto tip of target branch.
 advantage: 
@@ -125,7 +131,7 @@ git stash -u		--> u-> --include-untracked. stash tracked + untracked files.
 git stash pop		--> retreive stashed changes by deleting files from temp dir.
 git stash save -m ""	--> stash change with more descriptive messages
 git stash apply		--> retrive stashed changes but do not remove it from stash stack. 
-git stash drop 		--> after successfully applied changes if you longed required them can remove from stash entry. 
+git stash drop 		--> after successfully applied changes if you no longer required them can remove from stash entry. 
 
 
 ---.gitignore-----
@@ -152,6 +158,8 @@ git branch -r 		--> list remote branches in local
 git branch -a		--> list all remote and local branches
 
 git remote add <remote name> <remote URL>		--> add new remote to local. default remote is origin and you can find the same in .git/config file
+ex: git remote add origin main				--> if you dont want to repeat origin main everytime(whle pushing) then set upstream using -u (git remote add -u origin main)
+git remote -v 						--> verify the remote
 git remote rename <remote name>
 git remote remove <remote name>		
 
@@ -168,13 +176,13 @@ git pull --rebase		--> same as clone repo and then we commit one by one after th
 git push 			--> push the changes to remote repo
 git push --set-upstream origin feature1 		--> create feature1 branch in remote repo and push all changes of feature1 to remote repo.  
 
-pull request	--> request to review the code before merging into main remote branch 
-1. merge		--> create parent commit hierarchy 
+pull request(PR)	--> request to review the code before merging into main remote branch 
+1. merge		--> create parent commit history 
 2. squash and merge	--> combines all commits into one
 3. rebase and merge	--> rebase all feature1 commits and then merge with main branch. 
 
 git push origin :feature1	--> to delete feature1 branch from remote repo
-git branch -D feature1		--> remote branch from local
+git branch -D feature1		--> remove branch from local
 
 -----Devide and Conquer ------
 Divide: Instead of making changes directly in the main branch (e.g., master), developers create feature branches to work on specific tasks or features.
@@ -184,3 +192,38 @@ Conquer: Each feature branch represents a focused, isolated set of changes. Once
 allows anyone to contribute to project without having write access. freely experiment with changes without affecting original project. 
 
 Note: Both cloning and forking are mechanisms in Git that allow you to obtain a copy of a repository, but they serve different purposes and are typically used in different scenarios.
+
+git pull 	--> bydefault pull changes from forked repo but if we want to pull changes from original repo then follow below
+git remote add upstream <original repo url>
+git pull upstream main
+
+draft pull request	--> not intended to merge rather want feedback and discussion on the changes before they are in final state. 
+
+
+----Branching strategy--------
+dev
+↓
+v1.0.0 (symanic versioning major(significant code change with huge impact. not compatible with previous version)-> minor(new features with little impact)--> patch(bug fixes) number indicates in versioning)
+↓
+hotfixes V1.0.1
+↓
+release(pre-prod)
+↓
+master/main(prod)
+
+git tags		--> tags are referrence to a perticular commit in git history. and it is static. 
+1. new artifcats can be created based on specific tag
+2. code audit and review
+3. used to identify release deployment deployed on env. 
+4. used to identify end of sprint or new feature.  
+
+2 types of tag
+1. annotated tag		--> includes metadata and comment
+git tag -a v1.0.0 hash	-m ""	--> -a shows annotated 
+2. lightweight tag		--> does not include anything
+git tag v1.0.1
+
+
+
+
+
