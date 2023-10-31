@@ -1,0 +1,130 @@
+Maven is project managemet and built tool for java applications market share : 70%	 Gradle: 20% 	Ant: 10%	
+Advantages:
+1. Quick project setup : convention over configuration so takes little time to setup 
+2. matured project build cycle
+3. Matured dependancy management(before maven manually need to import libraries used in project. maven automate those)
+4. Maven de-facto standards (artifact naming, project structure layout etc)  followed by java
+
+-ve:
+project description in xml
+
+---Java packaging------
+.jar: java archive containing one or more .class files				--> not complete application
+.war: web application archive containing one or more jar files and .class files and web resources(.html,.jsp,.xml,.properties etc)	---> complete apps
+.ear: enterprise archive containing one or more war files + EJB classes				--->  complete application deployed to app server(tomcat/weblogic)
+libraries: collection of .jar files	
+.Fat/UberJAR: executable jar containing all dependancies(used by springboot) 			--> complete application containing embedded app server
+.docker container: docker image containing runtime env,jvm and java pakage
+
+-----Maven Basics-------
+coordinates: used to identify artifacts. they identify location in maven repository.
+1. groupid: typically unique to org. often org domain in reverse order. (provider i.e spring)
+2. artifactid: project name (jar name)
+3. version: project version major.minor.incremental(patch)-SNAPSHOT.jar
+SNAPSHOT:tells maven this is devlopment verison + not stable and mvn should check for newer versions --> mvn checks local repo and then remote repo 
+by default, mvn checks remote repo once per day for stable version(option is configurable) 
+
+Maven repo: Location where project artifacts are stored. 
+1. local: <user home>/.m2
+2. central : https:repo1.maven.org/maven2
+2. remote: other public or private repo
+
+POM: project object module
+its an XML document describes mave project + can inherit properties from parent POM. pom file contains,
+1. parent maven project details	 --> contains common properies,jars,dependecies and dependency management in pom.xml which can be inherited in child maven projects. 
+		steps to create parent maven project
+			1. file --> new --> maven project --> sample maven project --> provide details --> packaging choose POM (must be POM to behave as parent)
+			once create then add dependency management in pom.xml of parent
+		how to use parent pom in child projects
+			1. create maven project --> add below lines in pom.xml
+				<parent>
+					<groupId>parent grp id</groupId>
+					<artifactId>parent artifact </artifactId>
+					<version>parent project verison</version>
+ 				</parent>
+2. * out project details
+3. properties(k-v)
+4. * dependencies(jars)		--> exclusions + scopes + jars with versions specified etc (if we use dependency managemet then version not required in dependencies)
+5. dependency management		--> BOM(bil of material. i.e pom with all possible dependancies and versions managed)
+6. plugins
+
+Note: "dependencies" in Maven are individual external libraries and modules that your project relies on, while "dependency management" is a way to control and centralize the versions of these dependencies across multiple projects, ensuring consistency and simplifying version management.
+
+1. xml metadata can be ignored
+2. <parent> 
+----
+----
+</parent> : shows what kind of application it is. 
+3. project information <groupID><artiFactID> etc
+4. <properties> <java.version></java.version> </properties> : used to provide versions details
+		<failOnMissingWebXml>false</failOnMissingWebXml> --> if runing without web.xml
+5. <dependency> </dependency> : list of dependencies used in project. will add automatically by springBoot when you use springBoot initializr
+	<exclusions></exclusions> --> removing jars from dependancy chain of jars
+
+
+Dependencies: is an artifact which your maven project depends on (typically jar or pom) + managed by dependency maven plugin
+1. transitive dependency: can go many layers deep + cyclic dependency not allowed
+2. dependency management: allowes author to specify artifact version to be used. 
+3. dependency mediation : determine what version to use when multiple versions of same dependency prsent (nearest definition in tree is used)
+4. excluded  + optional dependencies
+
+dependency scope:  used to limit the transitivity of a dependency and to determine when a dependency is included in a classpath(at what time you need dependancies while compiling/running/testing app. by default available at all times)
+1. compile: default. used at compile and runtime.
+2. provided : lik compile but expected to be provided by server or container at runtime.
+3. runtime: needed for runtime only
+4. test	: only available on test classpath
+5. system: similar to provided but jar is added to system explicitely (via classpath). fetch from local
+6. import: imports dependenccy of POM
+
+standard directory layout: 
+src/main/java--> java files				--> development files
+src/main/resources--> text,img or properties files
+ 
+src/test/java --> java test cases			--> testing files
+src/test/resources --> text,img or properties files
+
+src				--> web development
+ --> main
+    --> webapps(root folder. represent with /)
+      --> WEB-INF
+        --> web.xml
+JRE System library
+Maven dependancies
+pom.xml
+
+----Build lifecycle----
+Executing set of task to convert code into final format(.jar/war/ear)
+
+build lifecycle(code .java-> compile .class-> build .jar/war/ear) is predefined group of build steps(task) called phases --> each phase can be bound to one or more plugin goals -->  all work done in maven is done by plugins
+clean phase --> (plugin binding)maven clean plugin --> goal: clean 
+	
+											phase	  --> goals
+Goal: it is an implementation of phase that works using associated plugin goal. ex: java -version --> executes internal logic 
+Phase	----internally executes-->		plugin:goal
+package						jar:jar
+						war:war
+Maven has 3 predefined lifecycles: clean(remove all artifcats frm current working repo) ,default(build and deploy) and site(document and website)
+
+Default lifecycle:
+validate: Validate if project is correct
+compile: compile source code,classes stored in target/classes
+test: test compiled source code by running test
+Package: package compiled source code to distributable formate like jar or war. 
+verify: run integration test to check project meets quality criteria
+install: install to local maven repo
+deploy: copies final package to remote maven repo
+
+Note: mostly used clean,compile,package,install,deploy and site. If we try to execute one phase, phases which are connected before in order also executed. 
+
+Maven wrapper: is a tool used to encapsulate and distribute maven build tool to your project without havin maven installed on machine. 
+Archetype: project template helps to create new maven projects with predefined configurations,directory structure, build files etc.
+mvn archetype:generate
+mvn archetype:create-from-project	--> to create archetype from existing project
+
+
+---Testing with maven------
+Unit testing: is completed by maven Surefire plugin
+Integration testing: is completed by maven failsafe plugin
+
+
+
