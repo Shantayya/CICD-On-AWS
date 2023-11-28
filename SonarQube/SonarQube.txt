@@ -1,0 +1,18 @@
+Sonarqube is open source automatic code review tool to detect bugs,vulnerabilties and code smells in your code. It helps in continueous code inspection across your project branches and pull requests. 
+Static code analysis:
+Also called as static application security testing(SAST) method of examining source code before prgm run. Analysis happens against set of coding rules  to identify
+issues/vul within logic and technique. Implemented at early stage f SDLC. 
+
+Dynamic code analysis: 
+also called as Dynamic application security testing designed to test running application for potentially exploitable vul(compile plus runtime). implemented towards end of SDLC. 
+
+default port is 9000.
+
+it offers reports like,
+1. Duplicated code
+2. Coding standards
+3. Unit testing
+4. Code coverage
+5. Code complexity
+6. Potential bugs
+
