@@ -1,7 +1,8 @@
-Git: version control system helps to track changes in the code. popular + open source + fst and scalable + heps to collaborate
+Git: version control system helps to track of code base changes. popular + open source + fst and scalable + heps to collaborate
 GitHub: cloud web interface helps to store  and manage code using git.  
 
-gt clone <repo url> 	--> cloning repo on local machine
+git clone <repo url> 	--> cloning repo on local machine
+git clone --single-branch --branch branch_name repository_url  	---> clone single branch
 git add  --> add to staging area
 git commit -m "--" --> add to local repo. record of change
 git init  --> used to initialize the project. .git folder contains the staging(blob object) and local repo(commit and tree object) for versioning. 
@@ -10,13 +11,13 @@ git config --local(specific to project) or --global(all projects) user.email "" 
 git config --list
 
 chached/indexed/staged  --> means same. files are tracked for versioning at staging area.
-git rm --cached */specific file 	--> remove all tracked files from cache 
+git rm --cached */specific file 	--> remove all tracked files from cache/stage but keep them in current dir
 or 
 git restore --staged <filename>		--> unstage files
 
 git status	--> to check file tracking status (1.untracked	2.modified	3.staged	4.unmodified) 
 
-git rm file --> removes file from local and staging area
+git rm file 	--> removes file from local and staging area
 git log master	--> check git commands history
 
 git cat-file -p <commit-hash> 	--> it will show you blob objects 
@@ -25,6 +26,7 @@ git switch <commit hash to revert to>	--> revert changes to previous commit. rol
 
 
 ---Branching----
+creating new parallel line of develeopment in simple words. 
 Branch is a referrence to a commit. branch gets created in .git/refs/head file.
 Note: When ever we create new branch, new branch will always points to last commit on master branch. 
 
@@ -43,6 +45,8 @@ master branch: a.txt		feature branch: a.txt + b.txt
 git branch				--> show available brances in git
 git branch <branch-name>		--> to create new branch
 git switch/checkout <branch-name>	--> switch to new branch
+
+gi checkout -b <branch name>		--> create new branch plus checkout to that branch. 
 
 git reset <filename> or get reset	--> reset staged changes	
 git reset HEAD~<number>			--> reset commited changes. number of commits to be restored
@@ -79,6 +83,10 @@ git checkout -b feature1 <above command hash>		--> to recover deleted feature1 b
 
 
 -------3 way merge------
+In a three-way merge, Git considers three commits: the common ancestor (the point where the branches diverged), the current branch's commit, and the commit you're merging in.
+This process is more complex than a fast-forward merge and involves resolving potential conflicts when changes have occurred in both branches.
+It creates a new commit with two parent commits, one from the current branch and one from the branch being merged.
+
 	master(12a3hsnxg commit)	master(sn31a5hx commit)
 ---O-------O------O--------------------O
 a.txt	   ↓b.txt d.txt	  	       e.txt	 
@@ -103,6 +111,8 @@ a.txt	   ↓b.txt d.txt	  	       e.txt
 	   c.txt   f.txt     g.txt	
 feature1(9djs12nhd commit)   feature1(1ahsn53ce commit) 
 
+Rebase: 
+allows you to map all the changes happen in new branch below the latest change of main branch. 
 Rebase operation allows you to integrate changes from one branch to other by moving or applying series of commits from source branch onto tip of target branch.
 advantage: 
 1. maintain linear commit history (can drop few commits as well. git rebase -i master)
@@ -173,8 +183,9 @@ git pull			---> fetch + merge(fast forward or three way)
 git pull --rebase		--> same as clone repo and then we commit one by one after that. git pulls changes from repo and then apply local commits one by one after that.
 
 -----push----
-git push 			--> push the changes to remote repo
-git push --set-upstream origin feature1 		--> create feature1 branch in remote repo and push all changes of feature1 to remote repo.  
+git push 						--> push the changes to remote repo
+git push --set-upstream(or -u) origin feature1 		--> create feature1 branch in remote repo and push all changes of feature1 to remote repo.  
+git push -u origin HEAD:shantayya			--> if remote branch name different from local then use HEAD:remote_branch name to push changes 
 
 pull request(PR)	--> request to review the code before merging into main remote branch 
 1. merge		--> create parent commit history 
