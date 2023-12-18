@@ -1,0 +1,237 @@
+Jenkins open source automation server that is used to automate all sort of tasks related to building(maven), testing(Junit), delivering and even deploying the software.
+
+Jenkins Plugins:
+Jenkins has plugin repository where you can download .hpi file and upload it your server. Manage jenkins --> manage plugins --> Advanced
+or copy to plugin directory /var/lib/jenkins
+
+Master-Slave architecture:
+A Standalone Jenkins instance can grow quickly into disk-munching,cpu eating monster. To prevent this from happening we can scale Jenkins by implementing a slave node architecture,which can help us offload some of responsibilities of master jenkins instance. 
+
+Jenkins master:
+1. Holds all key configuration
+2. Acts like controller or orchestrator
+3. Sheduling and monitoring build tasks 
+4. Dispatching build to slaves
+5. Monitor the slaves etc
+
+Jenkins slave:
+1. Java executable that runs on remote machine
+2. Listen to requests from master and executes build jobs
+3. Slaves can run on variety of OS etc
+
+static slaves:			dynamic slaves:
+vm (nodes)			container or pods (cloud)
+
+Note: Jenkins master node uses JNLP(Java network launch protocol) service on port 50000 to connect to slaves for dispatching jobs. /var/jenkins_home is deafult jenkins home when used container and /var/lib/jenkins/ if use jenkins as service. 
+
+----Run Jenkins as docker container----
+usermod -aG docker jenkins				--> adding jenkins user to docker group so that jenkins user can access docker. 
+docker volume create jenkins_home
+docker run -d --name Jenkins -v jenkins_home:/var/jenkins_home -p 8080:8080 -p 50000:50000 --restart always jenkins/jenkins:lts-jks11
+
+docker exec -it Jenkins cat /var/jenkins_home/secret/initialAdminPassword 		--> to see jenkins login password
+
+---run Jenkins as service---
+sudo yum update -y
+sudo amazon-linux-extras install epel -y
+sudo amazon-linux-extras install java-openjdk11 -y
+
+add jenkins repo, install using yum and start system services 
+
+logs: /var/log/jenkins/jenkins.log
+configuration parameter available at: /etc/sysconfig/jenkins like to change JENKINS_HOME
+
+
+----Jenkins job-----
+Sequential set of tasks that user defines. ex: a Job can fetch source code from version control,build the code,run unit tests etc
+job is synonymous iwth project. 
+Jenkins support 2 types of jobs boradly:
+1. Freestyle			--> default job types in jenkins. includes ad-hoc tasks,runninh shell commands, invoke ansible playbook etc
+2. Pipeline			--> series of build steps
+
+number of job types depends on the plugin that you have installed. ex: maven project/job is only available if you installed the maven plugin. 
+other job types include:
+3. multibranch pipeline 
+4. Folder					--> not a job type rather a way how you arrange jobs. 
+5. Multiconfiguration project
+
+
+--Env variables---
+in Jenkins Pipeline, there are lot of env variables  that can  be accessed and maintained during buid execution. can be seen at jenkins-url/env-vars.html
+ech "JOB_NAME=${JOB_NAME}"
+
+---Manage Jenkins--- (core configuratin stored in config.xml under /var/lib/jenkins)
+system configuration:
+1. configure system (now system): configure gobal settings(email(normal and extended) notification, global properties like env var,tools locations etc,system msg to promulgate msg for jenkins users like maintainance,executors(number of vCPU's) shows number of jobs can run at a time, quite period(buffer time to kick off jobs),SCM checkout retry count,Jenkins URL, and paths (JDK).
+
+2. global tool configuration (tools): configure the paths of the tools which you integrate with jenkins. provides auto installation also
+3. Manage plugins: Jenkins functionality can be extended through plugins. Plugins provide additional features and integrations with various tools. Mostly Jenkins server will not have opened to iternet so use plugin manager to configure proxy settings so that Jenkins can connect to internet to download Plugins. 
+
+4. manage nodes and cloud: manage configuration of nodes (adding new node,configure their usage (number of executors,label), specify target node for job execution etc)
+
+Note: 0 in executor specify no job will run on master. we can specify label to run jobs on slave always. 
+
+security:
+1. credentials: 
+	1. username and password
+	2. certificate
+	3. ssh username with privateKeys
+	4. seret text
+	5. secret file
+
+2. Configure global security
+3. manage users
+4. configure credential provider
+
+status information
+
+
+-----------------Freestyle Jobs----------------
+default job types in jenkins. they are highly configurable though UI and allow you define ad-hoc tasks(scp,docker run),running shell commands, invoke ansible playbook clone git etc
+
+General:
+1. description
+2. Discard old builds (days + number of builds to keep)
+3. GitHub project
+4. This project is parameterized
+5. Throttle builds
+6. Execute cncurrent builds if necessary
+7. Restrict where this sproject can be run (labels)
+8. Advanced: Quite period,retry count,Block build if upstream/downstream project is building,use custome workspace [checkboxes]
+
+SCM:
+1. None
+2. Git
+
+Build Triggers:
+1. Trigger builds remotely (from script)
+2. Build after other projects are build3. (upstream and downstream jobs)
+3. Build periodically  (cronjob)
+4. GitHub hook trigger for GitSCM polling
+5. Poll SCM (cronjob) but build only if any SCM changes. 
+
+Note: 3 and 5 both are cron jobs however 3rd run the job on mentioned time irrespective of any change in gitHub repo. 5th will try to run the job on mentioned time only if any change in gitHub repo otherwise skip.  
+
+Build Environment:
+1. Delete workspace before build starts
+2. Use secret text or fields			--> env variable with all types of credentials(mentioned in global credentials menu). use this env var in shell
+3. Add timestamp  to the console output
+4. Inspect build log for published build scans
+5. Terminate build if its stuck (gives timeout time)
+6. with Ant
+
+Build steps:
+1. Execute shell/windows
+2. Invoke Ant/Gradle script
+3. Invoke top level maven 		--> if Maven integration plugin
+4. Run with timeout
+
+Post Build actions:
+
+
+
+---Git Integratio with Jenkins-----
+1. download Git in Jenkins vm if Jenkins running as service
+2. provide GIT path as PATH env variable under global properties section of configure system section
+3. use shell under build steps (git clone $USER:$PASS@url)		--> $USER and $PASS env var defined under build environment --> secret text or fields
+
+or 
+1. manage jenkins --> plugin --> download GIT without restart
+2. provide Git executable path in Global tool configuration under GIT section if GIT already exist on jekins machine or auto download\
+3. check SCM  --> Git option by providing repo url and branch 
+
+
+----Maven integratin with Jenkins----
+1. download maven in jenkins machine
+2. provide Maven path as PATH env variable under global properties section of configure system section
+3. use shell under build step to build maven projects by specifying maven goals
+
+or
+1. manage jenkins -> plugins --> download maven integration plugin
+2. manage jenkins --> global tool configuration --> maven configuration section --> provide maven variable name and path if maven is already available in jenkins machine otherwise select auto download with correct maven version 
+3. select invoke top level maven under build steps by specifying goals
+
+
+
+
+----Trigger jobs remotely through script,curl,postman----
+ask for authentication token	--> provide any value like test123
+JENKINS_URL/jobs/jobname/build?Token=TOKEN_NAME(above value)	or /buildWithParameters?Token=TOKEN_NAME		--> use to remotely trigger job
+
+
+1. Through curl
+Trigger jobs through curl requires authentication with jenkins with username and token so manage Jenkins --> security --> manage users --> click on user(say admin) --> configure --> API token --> create one
+curl --user admin(user):token JENKINS_URL/jobs/jobname/build?Token=test123
+curl -X POST -d 			--> if build with parameter
+
+2. postman
+put above endpoint in GET and provide username and token under authrization 
+
+3. script --> in postman --> code snippet --> select any language to create script 
+config.json
+{
+"username":"admin"
+"token":"tokenvalue"
+"jenkins_url":"JENKINS_URL"
+"job_name":"RemoteTrigger"
+"job_token":"test12"
+}
+
+
+main.py
+#import libraries
+import json
+import os
+import requests
+
+#read config file
+dir_path = os.path.dirname(os.path.realpath(__file__))			--> returns path of config.json file
+configFile = open(dir_path + "/config.json","r")
+configContent = configFile.read()					--> returns string
+jsonConfigContent = json.loads(configContent)				--> return json as key-value pair (type will be dict)
+
+#parse config file
+jenkins_url = jsonConfigContent('jenkins_url')
+user = jsonConfigContent('username')
+token = jsonConfigContent('token')
+job_name = jsonConfigContent('job_name')
+job_token = jsonConfigContent('job_token')
+
+#trigger job
+URL = jenkins_url+'/jobs/'+job_name+'/build?token='+job_token
+response = requests.post(URL, auth=(user,token))
+
+#check status code
+if response.status_code == 201:
+   print("SUCCESS"
+else:
+   print("FAILURE")
+
+
+------------------------------------Jenkins GitHub webhook interation-----------
+Webhooks are one of the ways web application can communicate with each other. it allows you to send real time data from one apps to another whenever a given event occurs. 
+
+webhook vs API
+With API you get data through a process known as polling.  this is when your application periodically makes a request to an API server to check for new data. ex. weather apps
+Webhook, pushes the data to receiving application as soon as an event occur. thats why called as reverse API. 
+
+GitHub repo --> settings --> webhook --> add webhook --> JENKINS_URL/github-webhook/			--> in recent deliveries you can see github shares payload with jenkins 
+
+
+-----Generic webhook trigger to parse webhook payload----------
+we can use the generic webhook trigger plugin to parse webhook payload to trigger jenkins jobs based on particular action like PR opened or closed etc in github by filtering the webhook payloads in jenkins
+
+jobs --> job_name --> configure -> generic-webhook --> provide token value --> post content parameters (variable like ACTION,expression like $.action)--> optional filter (expression like opened, text like $ACTION) --> build steps
+
+repo --> settings --> webhook --> add webhoo --> JENKINS_URL/generic-webhook-trigger/invoke?Token=TOKEN_VALUE 
+
+
+------------------------------------Folder properties plugin---------------------------
+Allows user to define properties for folder which can then be used by any jobs contained within it or any of its sub-folder. 
+
+
+
+---------------------------------Build with parameters--------------------------
+Build parameters allows you to pass data into jenkins job. Supported parameters include Strings, Boolean, choices, Files,Credentials, password, URL to another job etc. 
+ 
+
