@@ -1,10 +1,10 @@
 Sonarqube is open source automatic code review tool to detect bugs,vulnerabilties and code smells in your code. It helps in continueous code inspection across your project branches and pull requests. 
+
 Static code analysis:
-Also called as static application security testing(SAST) method of examining source code before prgm run. Analysis happens against set of coding rules  to identify
-issues/vul within logic and technique. Implemented at early stage f SDLC. 
+method of examining source code before prgm run. Analysis happens against set of coding rules  to identify issues/vul within logic and technique. Implemented at early stage f SDLC like before code build in CI/CD
 
 Dynamic code analysis: 
-also called as Dynamic application security testing designed to test running application for potentially exploitable vul(compile plus runtime). implemented towards end of SDLC. 
+test running application for potentially exploitable vul(compile plus runtime (sql injection, int overflow,memory leak etc). implemented towards end of SDLC. 
 
 default port is 9000.
 
@@ -15,4 +15,54 @@ it offers reports like,
 4. Code coverage
 5. Code complexity
 6. Potential bugs
+
+
+SonarQube installation includes 2 parts: (jdk11)
+1. Sonar Scanner: scans and analyse the code and share report to sonar server (CI/CD). installed by 
+	1. downloading scanner executabe sonar.sh
+	2. maven plugin 
+	Sonarscaner-for-maven https://docs.sonarsource.com/sonarqube/9.8/analyzing-source-code/scanners/sonarscanner-for-maven/
+	The SonarScanner for Maven is recommended as the default scanner for Maven projects.The ability to execute the SonarQube analysis via a regular Maven goal 	makes it available anywhere Maven is available
+	<build>
+		<plugins>
+      			<plugin>
+        			<groupId>org.sonarsource.scanner.maven</groupId>
+        			<artifactId>sonar-maven-plugin</artifactId>
+        			<version>3.7.0.1746</version>
+      			</plugin>
+    		</plugins>
+	</build>
+
+	Start the scanner:
+	mvn clean verify sonar:sonar \				--> if we dont provide sonar properties using -Dsonar var like below then need to set below file. 
+ 	-Dsonar.projectKey=spring-petclinic \
+	-Dsonar.host.url=http://IP:9001	\	
+	-Dsobar.login=token
+	
+	SOnarscanner cli need below properties file to scan your code. 
+	create sonar-project.properties file at the root of the product. (should be located in the main or top-level directory of your software project)
+	sonar.projectKey=my:project
+	sonar.projectName=my project
+	sonar.projectVersion=1.0
+	sonar.working.directory= # like sonar.working.directory=${WORKSPACE}/pet-clinic
+	sonar.source=srcDir1,srcDir2
+	sonar.test=testDir1,testDir2
+	sonar.java.binaries=bin
+	sonar.language=java
+	sonar.sourceEncoding=UTF-8
+	sonar.java.libraries=path/to/library-jar,path/to/classes/dir
+	sonar.my.property=value
+	
+	3. Jenkins plugin
+2. SonarQube Server(compute engine + search server): record keeping and reporting to user. installed through 1. ec2	2. container	3. Helm
+
+
+Code coverage: amount of code that is covered by test cases. code coverage assesses the thoroughness of your testing.
+Quality profiles: these are set of rules when voilated raise issues on your codebase. (ex. sonarway) quality profiles define rules and best practices for code quality
+Quality gate: Selection criteria (in percentage) whether your code eligible to go into prod or not. quality gates ensure that your code meets specific criteria before advancing to prod
+
+3 QG
+1. Pass: QG metrics are met and prod can continue
+2. Warn: Barely met, and should be verified before prod continue
+3. Fail: QG metrics are not met, so issue should be resolved before continue to prod 
 
