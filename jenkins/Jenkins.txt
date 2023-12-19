@@ -79,7 +79,7 @@ security:
 	4. seret text
 	5. secret file
 
-2. Configure global security
+2. Configure global security	--> authorization --> matrix baed security 
 3. manage users
 4. configure credential provider
 
@@ -203,7 +203,7 @@ response = requests.post(URL, auth=(user,token))
 
 #check status code
 if response.status_code == 201:
-   print("SUCCESS"
+   print("SUCCESS")
 else:
    print("FAILURE")
 
@@ -223,7 +223,7 @@ we can use the generic webhook trigger plugin to parse webhook payload to trigge
 
 jobs --> job_name --> configure -> generic-webhook --> provide token value --> post content parameters (variable like ACTION,expression like $.action)--> optional filter (expression like opened, text like $ACTION) --> build steps
 
-repo --> settings --> webhook --> add webhoo --> JENKINS_URL/generic-webhook-trigger/invoke?Token=TOKEN_VALUE 
+repo --> settings --> webhook --> add webhook --> JENKINS_URL/generic-webhook-trigger/invoke?Token=TOKEN_VALUE 
 
 
 ------------------------------------Folder properties plugin---------------------------
@@ -233,5 +233,186 @@ Allows user to define properties for folder which can then be used by any jobs c
 
 ---------------------------------Build with parameters--------------------------
 Build parameters allows you to pass data into jenkins job. Supported parameters include Strings, Boolean, choices, Files,Credentials, password, URL to another job etc. 
+In FreeStyle job,you can access parameter just like any env variable ${PARAMETER_NAME}
+
+curl --user admin(user):token "JENKINS_URL/jobs/jobname/build?Token=test123&IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
+curl -X POST --user admin(user):token "JENKINS_URL/jobs/jobname/build?Token=test123" --data "IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
+
+---Active choices plugin---
+used in parameterized freestyle jenkins job to create scripted,dynamic and interactive job parameters. Active choices parameters can be dynamically updated and can be 
+rendered as combo-boxes, radio buttons or rich html UI widgets. 
+
+active-reactive parameters:
+State			cities
+Maharashtra		Pune,Mumbai,Nagpur
+UP			Waranasi,Lukhnow,NCR
+MP			Indore,Bhopal
+
+
+trigger buid with parameters job remotely:
+config.json
+{
+"username":"admin"
+"token":"tokenvalue"
+"jenkins_url":"JENKINS_URL"
+"job_name":"RemoteTrigger"
+"job_token":"test12"
+"isTheJobParameterized: "True"
+"my_data":{
+"DOCKERHUB_USERNAME":"Shantayya"
+"TAG":"5.55"
+"PUSH":"true"
+"DEPLOY_TO":"PROD"
+   }
+}
+main.py
+#import libraries
+import json
+import requests
+imort requests.auth
+import HTTPBasicAuth
+
+#read json file
+withOpen("config.json","r") as f:
+ data = json.load(f)
+
+#parse json file
+jenkins_url = data["jenkins_url"]
+user = data["username"]
+token = data["token"]
+job_name = data["job_name"]
+job_token = data["job_token"]
+parameterized = data["isTheJobParameterized"]
+
+#call remote job
+if parametrized:
+  URL = jenkins_url+'/jobs/'+job_name+'/build?token='+job_token
+  my_data = data["my_data"]
+else:
+  URL = jenkins_url+'/jobs/'+job_name+'/build?token='+job_token
+  my_data = None
+
+result = requests.post(URL,auth=HTTPBasicAuth(user,token),data = my_data)
+
+#status code
+if int(result.status_code) == 201:
+ print("Job Executed")
+else:
+ print("Job Failed")
+
+
+
+-------------------------Jenkins Tomcat integration--------------
+tomcat instalation:
+cd /opt
+curl -O https://URL/apache-tomcat-9.0.56.tar.gz
+tar -xzvpf apache-tomcat-9.0.56.tar.gz
+mv apache-tomcat-9.0.56 tomcat9
+echo "export CATALINA_HOME="/opt/tomcat9" >>~/.bashrc
+source ~/.bashrc
+
+
+start---> cd /opt/tomcat9/bin	--> ./startup.sh
+access --> Access tomcat from your browser at http://<IP-Address>:8080  change port at conf/server.xml
+
+add users --> add users and role at conf/tomcat-users.xml
+enable remote access --> at webapps/manager/META-INF/context.xml
+
+Manage jenkins --> manage plugins --> depoy to container plugin 
+add tomcat credentials in manage jenkins --> security --> credentials  --> Global --> add credentials 
+
+freestyle job --> post build actions --> deploy war to container --> 
+WAR/EAR Files: 
+context path: 
+containers --> credentials + Tomcat URL
+
+
+--------------------MailHog SMTP Jenkins integration-----------------
+MailHog is an email testing tool  for developers. It allows to configure your application  to use MailHog for SMTP delivery.
+MailHog runs with SMTP port 1025 and web interface on 8025. 
+
+docker run -d -p 1025:1025 -p 8025:8025 --name mail mailhog/mailhog
+manag jenkins --> configure system --> system configuration --> email notification --> add SMTP server and port details with recepient,default content etc
+
+jobs --> configure --> post build tasks --> select email notification 
+
  
+--------------------------Update Jenkins build status badge on GitHub-----------------
+Manage Jenkins --> manage plugins --> embeddable build status plugin 
+Goto FreeStyle job with SCM --> click on Embeddable build status --> copy one of markdown url in Git readme.md file 
+
+
+--------------------Update Jenkins build status in GitHub Pull Request----------------
+Generic-webhook trigger plugin needed to parse webhook payload to trigger jenkins jobs based on particular action like PR opened or closed etc in github by filtering the webhook payloads in jenkins
+Post Build task plugin --> allowed to execute shell task depending on build log output. 
+
+1. add webhook in github for PR open
+jobs --> job_name --> configure -> generic-webhook --> provide token value --> post content parameters (variable like ACTION,expression like $.action)--> optional filter (expression like opened, text like $ACTION) --> build steps
+
+repo --> settings --> webhook --> add webhook --> JENKINS_URL/generic-webhook-trigger/invoke?Token=TOKEN_VALUE 
+
+2. send Jenkins build status to jenkins
+Build actions --> post build task --> Log text as SUCCESS/FAILURE, script as below command  
+
+curl -u USERNAME:USER_TOKEN(GitHub) -X POST "https://api.github.com/repos/GITHUB_USERNAME/REPO_NAME/statuses/COMMIT_ID" -H
+"Accept: application /vnd.github.v3+json" -d 
+"{\"state\": \"SUCCESS/FAILURE\", 
+\"context\": \"ANY MESSEGE\",
+\"description\":\"Jenkins\",
+\"target_url\":\"JENKINS_URL/job/$JOB_NAME/$BUILD_NUMBER/console\" }"
+
+curl -u shantayya:ghp_www -X POST "https://api.github.com/repos/shantayya/maven-webapp/statuses/$GIT_COMMIT" -H "Accept: application/vnd.github.v3+json"
+-d "{
+\"state\":\"success\",
+\"context\":\"Continuous Integration\",
+\"description\":\"Jenkins\",
+\"target_url\":\"JENKINS_URL/job/$JOB_NAME/$BUILD_NUMBER/console\"
+}"
+
+refer: 
+https://docs.github.com/en/rest/using-the-rest-api/getting-started-with-the-rest-api?apiVersion=2022-11-28
+https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#create-a-commit-status
+
+
+
+-------------------Nexus Jenkins integration------------------------
+manage jenkins --> manage plugins --> download nexus platform plugin
+manage jenkins --> configure system --> system --> add Sonartype Nexus server details and save
+create freestyle job --> configure --> build steps --> Nexus repository manager publisher --> select details from drop down(it will list repos availabe on nexus)
+
+Note: under TAG, Snapshot version artifact will not be send to nexus repo from nexus 3 onwards. 
+
+
+---------------------SonarQube Integration with Jenkins--------------
+1. manage jenkins --> manage plugins --> downlaod sonarqube scanner plugin 
+2. manage jenkins ---> configure system --> system configuration --> add Sonarqube Server details and add sonarqube server credentials under global credentials security section of managed jenkins 
+3. manage jenkins --> global tool configuration --> provide sonar scanner path if scanner already exist in jenkins machine otherwise auto download
+4. create freestyle job ---> configure --> build steps --> select execute sonarqube scanner --> provide sonar-project.properties file or provide all properties in text box
+ 
+
+
+-------------------------Jenkins pipeline-----------------------------
+Pipeline is series of events or tasks which are interconnected in particular order. in simple words, its combination of plugins that support integration and implementation of continuous delivery pipelines. 
+DSL (domain specific lang) specialized to particular apps domain like HTML for web pages etc
+
+definition of jenkins pipeline is written into text file called as Jenkinsfile. can be constructed in 2 ways,
+1. Declarative Pipeline		--> very easy to understand and write 
+pipeline{
+ agent any
+ stages {
+   stage('Build'){}
+   stage('Deploy'){ script{} }			--> script block helps to run groovy code inside declarative pipeline. 
+  }
+}
+2. Scripted Pipeline (Groovy)	--> very powerful however need skilled resource and makes pipeline complicated
+node{
+stage('Build'){ steps {} }
+stage('deploy'){steps {} }
+ }
+
+node/agent is crutial as it allocates an executor and workspace for pipeline. 
+
+Node: Use Groovy sandbox if checked, runs the script in sandbox with limited abilities. if unchecked and you are not admin then you need to wait for admin approval for script execution . 
+
+
 
