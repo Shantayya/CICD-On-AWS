@@ -397,7 +397,7 @@ DSL (domain specific lang) specialized to particular apps domain like HTML for w
 
 definition of jenkins pipeline is written into text file called as Jenkinsfile. can be constructed in 2 ways,
 1. Declarative Pipeline		--> very easy to understand and write 
-pipeline{
+pipeline{ 
  agent any
  stages {
    stage('Build'){}
@@ -412,7 +412,162 @@ stage('deploy'){steps {} }
 
 node/agent is crutial as it allocates an executor and workspace for pipeline. 
 
-Node: Use Groovy sandbox if checked, runs the script in sandbox with limited abilities. if unchecked and you are not admin then you need to wait for admin approval for script execution . 
+Node: Use Groovy sandbox if checked, runs the script in sandbox with limited abilities. if unchecked and you are not admin then you need to wait for admin approval for script execution. 
+PATH=$PATH:$M2_HOME/bin
+/usr/bin:/usr/sbin/:/opt/maven/bin		--> in Pipeline PATH=$PATH will not resolve so we use PATH+EXTRA in env variable or use withEnvironment
 
 
+----shell commands inside pipeline-----
+pipeline{
+ agent any
+ stages{
+   stage('Build'{
+     steps{
+        sh 'mvn clean'			--> When you use the sh step in a Jenkins pipeline, it's a built-in step (plugin) that allows you to execute shell commands
+	sh '''				--> execute multiple commands 
+		----------
+		--------
+ 	   '''
+           }
+         }
+     }
+ }
+
+-------------Timeout and retries------
+We cab retry certain steps in pipeline if they are failing or exit if steps take too long. (timeout)
+when step cannot be completed then timeout help the controller avoid wasting resources and release executors. 
+syntax: options {timeout(time: 1,unit: 'HOURS')}
+	option {retry(3)}
+
+pipeline{
+  agent any
+  options {
+     timeout(time:1, unit:'HOURS')}
+     retry(3)					--> global entry
+    }
+  stages{
+    stage('Deploy'){
+      steps{
+              retry(3){							--> stage level options
+                          sh './flaky.sh'
+                      }
+            timeout(time:3, unit: 'MINUTES'){
+             sh './healthcheck.sh'
+          }
+       }
+    }
+}
+
+
+----Post build steps------
+post{
+  always{
+    echo 'This will run always' 
+        }
+  success{
+     echo 'This will run only if job success'
+         }
+  failure{
+     echo 'This will run only if job fails'
+         }
+  unstable{
+     echo 'This will ony run if job turns to unstable'
+         }
+  changed{
+      echo 'This will run only if job status has changed. be it from success to failure and vice versa'
+         }
+    }
+
+
+-------------Environment variable--------
+pipeline{
+  agent any
+  tools{
+    maven 'M3'						--> use maven path set in global tool conf so no ned to withEnv() in buld stage. 
+      }
+  environment{						--> use globally
+   USE_JDK='true'
+   JDK_HOME='/opt/jdk1.8.0_333'
+   DB_ENGINE='sqlite'
+   GIT_CREDS = credentials('GIT_USR_PASS')		--> GIT_USR_PASS credential mentioned in security--> credentials section
+      }
+   stages{
+     stage('Print Env variables'){	
+             environment{ ----}				---> stage level
+             steps{
+                   echo '${DB_ENGINE}' or $DB_ENGINE or ${env.DB_ENGINE}
+		   echo '${GIT_CREDS_USR}'	
+	           echo '${GIT_CREDS_PASS}'
+                  }
+           }
+         }
+     stage('Build'){
+       staps{
+          withEnv(['PATH+EXTRA=/opt/maven/bin']){	--> use withEnv() wrapper if tools path is not mentioned in loadl tool configuration. generate withEnv using pipeline syntax generator
+              sh 'mvn clean install'
+             }
+          }
+       }
+ }
+
+
+Note: if var contains username and password then we can use var_USR and var_PASS to separate username and password in jenkins. 
+
+1. credentials()					--> expose sensitive info in logs plus globa scope if defined in global environment block
+GIT_CREDS = credentials('GIT_USR_PASS')
+curl -u GIT_CREDS_USR:GIT_CREDS_PASS 'URL'
+
+2. using withCredentials()				--> not expose plus limited scope
+withCredentials([usernamePassword(crdentialsId:'git_usr_pass', passwordVariable:'Y', usernameVariable:'X')])
+ {
+   curl -u $X:$Y 'URL'
+ }
+
+while both methods achieve the same purpose, using withCredentials() is often considered a best practice for handling credentials in Jenkins pipelines.
+
+
+------Deploying on pods------
+1. install kubectl on jenkins machine  and put kubectl executable in /usr/bin and provide executable permission for kubectl
+2. declare PATH variable in manage jenkins --> configure systems --> system configurations --> environment properties --> PATH
+3. downlaod kubeconfig file from digital ocean and create secret file from manage jenkins --> security --> credentials --> dc_kc
+4. create pipeline job
+pipeline{
+  agent any
+  environment{
+   my_config = credentials('dc_kc')
+      }
+  stages{
+    stage('Get Pods'){
+      steps{
+              sh 'kubectl --kubeconfig=$my_config get pods'
+            }
+        }
+    }
+}
+
+Note: here we have to provide --kubeconfig everytime we execute kubectl command 
+
+--using kubenetes CLI plugin---
+1. install kubectl on jenkins machine  and put kubectl executable in /usr/bin and provide executable permission for kubectl
+2. manage jenkins--> manage plugins --> kubenetes cli
+3. create secret file from manage jenkins --> security --> credentials --> dc_kc (file having kubeconfig file)
+4. create pipeline job
+pipeline{
+  agent any
+  stages{
+    stage('Get Pods'){
+      steps{
+	  script{
+		withKubeConfig([credentialsId='dc_kc']){		--> withKubeConfig() wrapper is scripted syntax so used in script block
+   	           sh 'kubectl get pods'
+        	    }
+		}
+        }
+    }
+  }
+}
+
+Note: if we have to use helm then install it on jenkins machine and follow remaining steps from 2 to 4 
+
+	
 
