@@ -1,0 +1,100 @@
+pipeline {
+    agent {
+        // Define your agent details here
+        // For example: label 'your-label'
+        // Or use a specific agent type:
+        // docker { image 'maven:3.8.4' }
+        // kubernetes { yaml 'your-kube-config.yaml' }
+        // awsCodeBuild 'AWS-CodeBuild-Project-Name'
+        // azureAgent 'Azure-Agent-Pool'
+    }
+    
+    environment {
+        // Define environment variables here
+    }
+
+    options {
+        buildDiscarder(....)
+        disableConcurrentBuilds()
+        skipDefaultCheckout(..)
+        timeout(time: digit, unit: 'HOURS')
+        retry(number)
+        timestamps()
+    }
+
+    parameters {
+        string(name: 'STRING_PARAM', defaultValue: 'default', description: 'Description for string parameter')
+        booleanParam(name: 'BOOLEAN_PARAM', defaultValue: true, description: 'Description for boolean parameter')
+        choice(name: 'CHOICE_PARAM', choices: ['option1', 'option2'], description: 'Description for choice parameter')
+    }
+
+    tools {
+        maven 'MavenToolName'
+        jdk 'JdkToolName'
+        gradle 'GradleToolName'
+    }
+
+    triggers {
+        cron('H 4 * * 1-5')  // Example cron trigger for every weekday at 4 AM
+        pollSCM('*/5 * * * *')  // Example polling SCM every 5 minutes
+        upstream(upstreamProjects: 'upstream-job', threshold: hudson.model.Result.SUCCESS)
+        // Other trigger types
+        // genericTrigger(triggerConfigFile: 'path/to/trigger-config.xml', token: 'your-token')
+        // githubPush()
+        // gitlab(triggerOnPush: true)
+        // bitbucketPush()
+        // schedule('0 2 * * *') // Another example schedule
+        // scm('your-scm')
+    }
+
+    stages {
+        stage('Example Stage') {
+            agent {
+                // Define stage-specific agent details here
+                // For example: label 'another-label'
+                // Or use a different agent type:
+                // docker { image 'node:14' }
+                // kubernetes { yaml 'another-kube-config.yaml' }
+                // awsCodeBuild 'Another-AWS-CodeBuild-Project'
+                // azureAgent 'Another-Azure-Agent-Pool'
+            }
+            environment {
+                // Define stage-specific environment variables here
+            }
+            tools {
+                // Define stage-specific tool versions here
+            }
+            when {
+                expression { params.STRING_PARAM == 'example' }
+            }
+            steps {
+                script {
+                    // Your stage-specific script goes here
+                    echo 'Hello, world!'
+                }
+            }
+            post {
+                always {
+                    // Actions to be performed always
+                    echo 'This will run always'
+                }
+                success {
+                    // Actions to be performed on successful completion
+                    echo 'This will run on success'
+                }
+                failure {
+                    // Actions to be performed on failure
+                    echo 'This will run on failure'
+                }
+                unstable {
+                    // Actions to be performed on an unstable build
+                    echo 'This will run on an unstable build'
+                }
+                changed {
+                    // Actions to be performed when the build status changes
+                    echo 'This will run when the build status changes'
+                }
+            }
+        }
+    }
+}
