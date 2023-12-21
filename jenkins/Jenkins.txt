@@ -25,7 +25,8 @@ vm (nodes)			container or pods (cloud)
 Note: Jenkins master node uses JNLP(Java network launch protocol) service on port 50000 to connect to slaves for dispatching jobs. /var/jenkins_home is deafult jenkins home when used container and /var/lib/jenkins/ if use jenkins as service. 
 
 ----Run Jenkins as docker container----
-usermod -aG docker jenkins				--> adding jenkins user to docker group so that jenkins user can access docker. 
+usermod -aG docker jenkins		--> adding jenkins user to docker group so that jenkins user can access docker. 
+newgrp docker				--> reloading docker group	
 docker volume create jenkins_home
 docker run -d --name Jenkins -v jenkins_home:/var/jenkins_home -p 8080:8080 -p 50000:50000 --restart always jenkins/jenkins:lts-jks11
 
@@ -483,7 +484,7 @@ post{
 pipeline{
   agent any
   tools{
-    maven 'M3'						--> use maven path set in global tool conf so no ned to withEnv() in buld stage. 
+    maven 'M3'						--> use maven tool if maven path is set in gloabal tool conf so no need to witEnv() wrapper to specify mvn path 
       }
   environment{						--> use globally
    USE_JDK='true'
@@ -527,12 +528,12 @@ while both methods achieve the same purpose, using withCredentials() is often co
 
 
 ------Deploying on pods------
-1. install kubectl on jenkins machine  and put kubectl executable in /usr/bin and provide executable permission for kubectl
+1. install kubectl on jenkins(running as service) machine  and put kubectl executable in /usr/bin and provide executable permission for kubectl
 2. declare PATH variable in manage jenkins --> configure systems --> system configurations --> environment properties --> PATH
 3. downlaod kubeconfig file from digital ocean and create secret file from manage jenkins --> security --> credentials --> dc_kc
 4. create pipeline job
 pipeline{
-  agent any
+  agent any								--> When you use agent any, Jenkins will dynamically allocate an available agent (which, in 									this case, could be a Kubernetes pod) to execute the pipeline stages. This flexibility allows 									Jenkins to choose any available agent that meets the requirements of the pipeline stages.
   environment{
    my_config = credentials('dc_kc')
       }
@@ -567,7 +568,89 @@ pipeline{
   }
 }
 
-Note: if we have to use helm then install it on jenkins machine and follow remaining steps from 2 to 4 
+in above pipeline we are executing jobs on pods which are working as agents. Am I right? If I am right then why we have written agent as any in pipeline?
 
-	
+Note: if we have to use helm then install it on jenkins machine and follow remaining steps from 2 to 4.
+kubeconfig file handles the authentication and access to the Kubernetes cluster, and no additional service account or role binding is needed within the Kubernetes cluster for Jenkins in this specific pipeline configuration. 
+
+
+
+--------Push maven artifacts to Nexus repository---------------
+We need Sonatype Nexus Artifact Uploader(for uploading artifact) and Pipeline Utility Steps (for fetching artifact detais from pom) plugins to download in jenkins. 
+referrence: https://blog.sonatype.com/workflow-automation-publishing-artifacts-to-sonatype-nexus-using-jenkins-pipelines
+
+pipeline{
+  agent any
+  tools{
+  maven 'M3'
+      }
+  environment{
+     NEXUS_VERSION = "nexus3"
+     NEXUS_PROTOCOL = 'http"
+     NEXUS_URL="http://ip:8081"
+     NEXUS_REPOSITORY="maven-nexus-repo"
+     NEXUS_CREDENTIAL_ID = "nexus credentials"
+    }
+   stages{
+       stage('Clone Repo"{
+              steps{
+                   git branch: 'master',
+                   url: 'url"
+                   }
+                }
+       stage('Build'){
+             steps{
+                sh 'mvn -DskipTests/-Dmaven.test.failure.ignore=true clean package'
+                  }
+               }
+        stage('Push artifact to Nexus'){
+             steps{
+                script{
+                    pom = readMavenPom file: "pom.xml";
+                    filesByGlob = findfiles(glob: "target/*.${pom.packaging}");
+                    echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
+                    artifactPath = filesByGlob[0].path;
+                    artifactExists = fileExists artifactPath;
+                    if(artifactExists){
+                         echo "****File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version: ${pom.version}";
+                         nexusArtifactUploader(
+                              nexusVersion: NEXUS_VERSION,
+			      nexusProtocol: NEXUS_PROTOCOL,
+                              nexusUrl: NEXUS_URL,
+			      groupId: pom.groupId,
+                              version: pom.version,
+ 			      repository: NEXUS_REPOSITORY,
+                              credentialId: NEXUS_CREDENTIAL_ID,
+                              artifacts: [
+                                   [artifactId: pom.artifactId,
+                                    classifier: '',
+                                    file: artifactPath,
+                                    type: pom.packaging],
+                                    
+                                    [artifactId: pom.artifactId,
+                                    classifier: '',
+                                    file: pom.xml,
+                                    type: pom]
+
+					]
+				);
+			}else{
+                                 error "*** File: ${artifactPath}, could not be found";
+                         }
+                   }
+	   }
+    }
+
+
+Nexus push via CURL
+referrence : 
+https://support.sonatype.com/hc/en-us/articles/115006744008-How-can-I-programmatically-upload-files-into-Nexus-3-
+
+withCredentials([usernamePassword(credentialsId: 'CREDS', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+    sh "curl -v -u $USER:$PASS --upload-file target/${pom.artifactId}-${pom.version}.${pom.packaging} \
+    http://NEXUS-SERVER-URL/repository/maven-hosted/org/springframework/samples/${pom.artifactId}/${pom.version}/${pom.artifactId}-${pom.version}.${pom.packaging}"
+}
+
+
+--------------Using K8s pods as Jenkins build agents-------------------------
 
