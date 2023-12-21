@@ -653,4 +653,375 @@ withCredentials([usernamePassword(credentialsId: 'CREDS', passwordVariable: 'PAS
 
 
 --------------Using K8s pods as Jenkins build agents-------------------------
+If you are not using a kubeconfig file then need to set up a service account, role, and role binding for Jenkins within your Kubernetes cluster so that Jenkins which is running as service out of K8s cluster will talk to K8s cluster. 
+
+#Jenkins-sa.yaml:
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: Jenkins-sa
+
+#Jenkins-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: Jenkins-role
+rules:
+  apiGroups: [""]
+  resources: ["pods","pods/exec,"pods/log"]
+  verbs: ["get","list","watch","create","patch","update","delete"]
+
+#Jenkins-role-binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: Jenkins-role-binding
+subjects:
+- kind: ServiceAccount
+  name: Jenkins-sa
+rolRef:
+  kind: Role
+  name: Jenkins-role
+  apiGroup: rbac.authorization.k8s.io
+
+kubectl apply -f Jenkins-sa.yaml
+kubectl apply -f Jenkins-role.yaml
+kubectl apply -f Jenkins-role-binding.yaml
+
+pipeline{
+  agent{
+    kubernetes{
+      yaml '''
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          name: test
+      spec:
+        containers:
+        - name: maven
+          image: maven:alpine
+          command:
+          - cat
+          tty: true
+        - name: SCM
+          image: git:alpine
+          command: 
+          - cat
+          tty: true
+       '''}
+     }
+    stages{
+        stage('Checkout SCM'){
+            steps{
+                container('git'){
+                    sh 'git clone URL'
+                              }
+                   }
+                }
+         stage('Build'){
+             steps{
+                 container('maven'){
+                     sh 'mvn clean -DskipTests package'
+                             }
+                    }
+              }
+         }
+  }
+
+
+Note: if you want to run Jenkins as container then use helm chart to install jenkins. Jenkins if running as pod then it always spins JNLP container with all slave pods for communication and task execution on slave pods on port 50000. when we install jenkins using helm chart, JNLP container template configuration are in built. 
+
+
+-----------------------inheritFrom concept-------------------------------
+In Jenkins pipelines, when using Kubernetes pods as agents, the "inheritFrom 'default pod template name'" statement is used to inherit configuration settings from a predefined pod template defined in jenkins. This is a way to reuse a set of common configurations for multiple agents.
+
+Here's how it typically works:
+1. Jenkins Master Setup:
+Jenkins, running in a container or another deployment in your Kubernetes cluster, has access to DockerHub.
+Jenkins is configured with the default pod template, which includes the JNLP container and any other necessary configurations.
+Agent Pod Creation:
+
+When a Jenkins job is triggered and requires an agent, Jenkins dynamically creates a new pod based on the configured pod template.
+
+2. Docker Image Pull:
+If the pod template specifies a Docker image from DockerHub (e.g., the JNLP container or any other tools), Jenkins will attempt to pull that image.
+
+3. Jenkins as Docker Registry Proxy:
+Jenkins acts as a proxy for DockerHub in this case. It pulls the necessary images from DockerHub and caches them locally.
+The Jenkins master then serves as the registry for the Jenkins agents within the Kubernetes cluster.
+
+4. Agent Pod Execution:
+Once the pod is created and the necessary Docker images are available locally in the Jenkins master, the agent pod is launched with the specified containers.
+
+// Shared pod template named 'default'
+podTemplate(name: 'default', label: 'mypod', containers: [
+    containerTemplate(name: 'maven', image: 'maven:alpine', command: 'cat', ttyEnabled: true),
+    containerTemplate(name: 'git', image: 'git:alpine', command: 'cat', ttyEnabled: true)
+])
+
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'default' // Inherit configurations from the 'default' pod template
+
+            // Local override: Specify additional containers or modifications
+            containers {
+                containerTemplate(name: 'customContainer', image: 'custom/image', command: 'cat', ttyEnabled: true)
+            }
+        }
+    }
+
+    stages {
+        stage('Checkout SCM') {
+            steps {
+                container('git') {
+                    // Local step specific to the 'git' container
+                    sh 'git clone URL'
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                container('maven') {
+                    // Local step specific to the 'maven' container
+                    sh 'mvn clean -DskipTests package'
+                }
+            }
+        }
+    }
+}
+
+If you don't provide any additional pod manifest in the kubernetes block and use inheritFrom 'default', Jenkins will use the inherited configurations as the pod template for the agent. In this scenario, the 'default' pod template would define the containers, images, volumes, and other settings for the agent pod.
+
+---------------------------------------------------------------End to End pipeline----------------------------------------------------------------------
+Pipeline includes pods as build agents,maven,nexus,sonarqube and helm
+
+1. create k8s cluster on digital ocean and downlaod kubeconfig file locally
+2. download helm and kubectl and set path 
+3. install jenkins through helm chart
+helm repo add jenkins https://charts.jenkins.io
+helm repo update
+helm pull jenkins/jenkins --untar
+
+helm upgrade --install jenkins jenkins/ 					--> you have to make below changes in values.yaml file and then execute
+or 
+helm upgrade --install jenkins jenkins/jenkins --set controller.servicePort=80 --set controller.serviceType=LoadBalancer		--> changing service type to loadbalancer so that jenkins can be directly accessible from outside cluster
+
+kubectl exec -it jenkins-0 -- bash
+cat /run/secrets/additional/chart-admin-password
+
+pipeline{
+  agent{
+    kubernetes{
+      //inheritFrom 'default'	
+      yaml '''
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          name: test
+      spec:
+        containers:
+        - name: maven
+          image: maven:alpine
+          command:
+          - cat
+          tty: true
+        - name: SCM
+          image: git:alpine
+          command: 
+          - cat
+          tty: true
+       '''}
+     }
+    stages{
+        stage('Checkout SCM'){
+            steps{
+                container('git'){
+                    sh 'git clone URL'
+                              }
+                   }
+                }
+         stage('Build'){
+             steps{
+                 container('maven'){
+                     sh 'mvn clean -DskipTests package'
+                             }
+                    }
+              }
+         }
+  }
+
+
+Note: if you want to run Jenkins as container then use helm chart to install jenkins. Jenkins if running as pod then it always spins JNLP container with all slave pods for communication and task execution on slave pods on port 50000. when we install jenkins using helm chart, JNLP container (inbound agent) template configuration are in built. 
+
+When using Jenkins with Kubernetes agents, the common approach for sharing files between containers in a pod is to use shared volumes. The emptyDir volume is one option. Jenkins uses the Kubernetes Plugin, which supports several ways of sharing data between containers in a pod. When you define a pod template in Jenkins using the Kubernetes Plugin, you can specify volumes that should be mounted into the containers.
+
+
+----------------JUnit plugin + PVC for maven------------------
+download JUnit plugin for showing unit test results and use PVC for maven so that maven will not download dependancies every time which will delay the job execution
+
+#pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: maven-cache
+spec:
+  accessModes:
+  - readWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+pipeline{
+  agent{
+    kubernetes{
+      //inheritFrom 'default'	
+      yaml '''
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          name: test
+      spec:
+        containers:
+        - name: maven
+          image: maven:alpine
+          command:
+          - cat
+          tty: true
+	  volumeMounts:
+          - name: maven-cache
+            mountPath: /root/.m2/repository/
+        - name: SCM
+          image: git:alpine
+          command: 
+          - cat
+          tty: true
+        volumes:
+        - name: cache
+          persistentVolumeClaim:
+              claimName: maven-cache
+ 
+       '''}
+     }
+    stages{
+        stage('Checkout SCM'){
+            steps{
+                container('git'){
+                    sh 'git clone URL'
+                              }
+                   }
+                }
+         stage('Build'){
+             steps{
+                 container('maven'){
+                     sh 'mvn clean -DskipTests package'
+                             }
+                    }
+		post{
+                     JUnit '**/target/reports/*.xml'
+                     }
+              }
+         }
+  }
+
+
+
+--------sonar scan------
+1. install sonarqube using helm charts
+helm repo add sonarqube https://SonarSource.github.io/helm-chart-sonarqube
+helm repo update
+helm pull sonarqube/sonarqube --untar			--> update values.yaml and change service type as loadbalancer
+
+helm upgrade --install sonarqube sonarqube/ 			--> password: admin
+2. manage jenkins --> manage plugins --> download sonar scanner cli plugin 
+3. manage jenkins ---> configure system --> system configuration --> add Sonarqube Server details and add sonarqube server credentials under global credentials security section of managed jenkins 
+4. spin pod with sonar scanner cli 
+
+pipeline{
+  agent{
+    kubernetes{
+      //inheritFrom 'default'	
+      yaml '''
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          name: test
+      spec:
+        containers:
+        - name: maven
+          image: maven:alpine
+          command:
+          - cat
+          tty: true
+	  volumeMounts:
+          - name: maven-cache
+            mountPath: /root/.m2/repository/
+        - name: SCM
+          image: git:alpine
+          command: 
+          - cat
+          tty: true
+        volumes:
+        - name: cache
+          persistentVolumeClaim:
+              claimName: maven-cache
+        - name: sonar-cli
+          image: sonarsource/sonar-scanner-cli:latest
+          command:
+          - cat
+          tty: true
+       '''}
+     }
+    stages{
+        stage('Checkout SCM'){
+            steps{
+                container('git'){
+                    sh 'git clone URL'
+                              }
+                   }
+                }
+         stage('Build'){
+             steps{
+                 container('maven'){
+                     sh 'mvn clean -DskipTests package'
+                             }
+                    }
+		post{
+                     JUnit '**/target/reports/*.xml'
+                     }
+              }
+         }
+        stage('Sonar scan'){
+           steps{
+                container('sonar-cli'){
+                 withSonarQubeEnv(credentialsId: 'sonar', installationName: 'sonarserver'){	--> withSonarQubeEnv() wrapper used to send scan details with server
+                     sh ''' /opt/sonar-scanner/bin/sonar-scanner \  			--> execute sonar-scanner binary
+			-Dsonar.projectKey=petclinic \
+			-Dsonar.projectName=petcliic \
+			-Dsonar.projectVersion=1.0 \
+			-Dsonar.sources=src/main \
+			-Dsonar.tests=src/test \
+			-Dsonar.java.binaries=target/classes \
+			-Dsonar.language=java \
+			-Dsonar.sourceEncoding=UTF8 \
+			-Dsonar.java.libraries=target/classes 
+                       '''
+                     }
+                   }
+                }
+             }
+          stage('Wait for quality gate'){
+              steps{
+                      container('sonar-cli'){
+                         timeout(time: 1, unit: 'HOURS'){			--> create sonarqube-webhook in sonarqube so that it will send QG info to jenkins
+                            waitForQualityGate abortPipeline: true		--> wait for quality get information to reach jenkins if not then abort pipeline
+                            }
+                          }
+                    }
+                }
+          }
 
