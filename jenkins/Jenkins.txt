@@ -19,7 +19,7 @@ Jenkins slave:
 2. Listen to requests from master and executes build jobs
 3. Slaves can run on variety of OS etc
 
-static slaves:			dynamic slaves:
+static agents:			dynamic agents:
 vm (nodes)			container or pods (cloud)
 
 Note: Jenkins master node uses JNLP(Java network launch protocol) service on port 50000 to connect to slaves for dispatching jobs. /var/jenkins_home is deafult jenkins home when used container and /var/lib/jenkins/ if use jenkins as service. 
@@ -45,9 +45,9 @@ configuration parameter available at: /etc/sysconfig/jenkins like to change JENK
 
 ----Jenkins job-----
 Sequential set of tasks that user defines. ex: a Job can fetch source code from version control,build the code,run unit tests etc
-job is synonymous iwth project. 
+job is synonymous with project. 
 Jenkins support 2 types of jobs boradly:
-1. Freestyle			--> default job types in jenkins. includes ad-hoc tasks,runninh shell commands, invoke ansible playbook etc
+1. Freestyle			--> default job types in jenkins. includes ad-hoc tasks,running shell commands, invoke ansible playbook etc
 2. Pipeline			--> series of build steps
 
 number of job types depends on the plugin that you have installed. ex: maven project/job is only available if you installed the maven plugin. 
@@ -61,7 +61,7 @@ other job types include:
 in Jenkins Pipeline, there are lot of env variables  that can  be accessed and maintained during buid execution. can be seen at jenkins-url/env-vars.html
 ech "JOB_NAME=${JOB_NAME}"
 
----Manage Jenkins--- (core configuratin stored in config.xml under /var/lib/jenkins)
+---Manage Jenkins--- (core configuration stored in config.xml under /var/lib/jenkins)
 system configuration:
 1. configure system (now system): configure gobal settings(email(normal and extended) notification, global properties like env var,tools locations etc,system msg to promulgate msg for jenkins users like maintainance,executors(number of vCPU's) shows number of jobs can run at a time, quite period(buffer time to kick off jobs),SCM checkout retry count,Jenkins URL, and paths (JDK).
 
@@ -88,7 +88,7 @@ status information
 
 
 -----------------Freestyle Jobs----------------
-default job types in jenkins. they are highly configurable though UI and allow you define ad-hoc tasks(scp,docker run),running shell commands, invoke ansible playbook clone git etc
+default job types in jenkins. they are highly configurable through UI and allow you define ad-hoc tasks(scp,docker run),running shell commands, invoke ansible playbook clone git etc
 
 General:
 1. description
@@ -96,8 +96,8 @@ General:
 3. GitHub project
 4. This project is parameterized
 5. Throttle builds
-6. Execute cncurrent builds if necessary
-7. Restrict where this sproject can be run (labels)
+6. Execute concurrent builds if necessary
+7. Restrict where this project can be run (labels)
 8. Advanced: Quite period,retry count,Block build if upstream/downstream project is building,use custome workspace [checkboxes]
 
 SCM:
@@ -106,7 +106,7 @@ SCM:
 
 Build Triggers:
 1. Trigger builds remotely (from script)
-2. Build after other projects are build3. (upstream and downstream jobs)
+2. Build after other projects are build (upstream and downstream jobs)
 3. Build periodically  (cronjob)
 4. GitHub hook trigger for GitSCM polling
 5. Poll SCM (cronjob) but build only if any SCM changes. 
@@ -131,14 +131,14 @@ Post Build actions:
 
 
 
----Git Integratio with Jenkins-----
+---Git Integration with Jenkins-----
 1. download Git in Jenkins vm if Jenkins running as service
 2. provide GIT path as PATH env variable under global properties section of configure system section
 3. use shell under build steps (git clone $USER:$PASS@url)		--> $USER and $PASS env var defined under build environment --> secret text or fields
 
 or 
 1. manage jenkins --> plugin --> download GIT without restart
-2. provide Git executable path in Global tool configuration under GIT section if GIT already exist on jekins machine or auto download\
+2. provide Git executable path in Global tool configuration under GIT section if GIT already exist on jekins machine or auto download
 3. check SCM  --> Git option by providing repo url and branch 
 
 
@@ -236,7 +236,7 @@ Allows user to define properties for folder which can then be used by any jobs c
 Build parameters allows you to pass data into jenkins job. Supported parameters include Strings, Boolean, choices, Files,Credentials, password, URL to another job etc. 
 In FreeStyle job,you can access parameter just like any env variable ${PARAMETER_NAME}
 
-curl --user admin(user):token "JENKINS_URL/jobs/jobname/build?Token=test123&IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
+curl --user admin(user):token "JENKINS_URL/jobs/jobname/buildWithParameter?Token=test123&IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
 curl -X POST --user admin(user):token "JENKINS_URL/jobs/jobname/build?Token=test123" --data "IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
 
 ---Active choices plugin---
@@ -287,7 +287,7 @@ parameterized = data["isTheJobParameterized"]
 
 #call remote job
 if parametrized:
-  URL = jenkins_url+'/jobs/'+job_name+'/build?token='+job_token
+  URL = jenkins_url+'/jobs/'+job_name+'/buildWithParameter?token='+job_token
   my_data = data["my_data"]
 else:
   URL = jenkins_url+'/jobs/'+job_name+'/build?token='+job_token
@@ -304,7 +304,7 @@ else:
 
 
 -------------------------Jenkins Tomcat integration--------------
-tomcat instalation:
+tomcat installation:
 cd /opt
 curl -O https://URL/apache-tomcat-9.0.56.tar.gz
 tar -xzvpf apache-tomcat-9.0.56.tar.gz
@@ -401,8 +401,8 @@ definition of jenkins pipeline is written into text file called as Jenkinsfile. 
 pipeline{ 
  agent any
  stages {
-   stage('Build'){}
-   stage('Deploy'){ script{} }			--> script block helps to run groovy code inside declarative pipeline. 
+   stage('Build'){steps{}}
+   stage('Deploy'){ steps{script{}} }			--> script block helps to run groovy code inside declarative pipeline. 
   }
 }
 2. Scripted Pipeline (Groovy)	--> very powerful however need skilled resource and makes pipeline complicated
@@ -438,7 +438,7 @@ pipeline{
 We cab retry certain steps in pipeline if they are failing or exit if steps take too long. (timeout)
 when step cannot be completed then timeout help the controller avoid wasting resources and release executors. 
 syntax: options {timeout(time: 1,unit: 'HOURS')}
-	option {retry(3)}
+	options {retry(3)}
 
 pipeline{
   agent any
@@ -504,7 +504,7 @@ pipeline{
          }
      stage('Build'){
        staps{
-          withEnv(['PATH+EXTRA=/opt/maven/bin']){	--> use withEnv() wrapper if tools path is not mentioned in loadl tool configuration. generate withEnv using pipeline syntax generator
+          withEnv(['PATH+EXTRA=/opt/maven/bin']){	--> use withEnv() wrapper if tools path is not mentioned in global tool configuration. generate withEnv using pipeline syntax generator
               sh 'mvn clean install'
              }
           }
@@ -568,7 +568,6 @@ pipeline{
   }
 }
 
-in above pipeline we are executing jobs on pods which are working as agents. Am I right? If I am right then why we have written agent as any in pipeline?
 
 Note: if we have to use helm then install it on jenkins machine and follow remaining steps from 2 to 4.
 kubeconfig file handles the authentication and access to the Kubernetes cluster, and no additional service account or role binding is needed within the Kubernetes cluster for Jenkins in this specific pipeline configuration. 
@@ -576,7 +575,7 @@ kubeconfig file handles the authentication and access to the Kubernetes cluster,
 
 
 --------Push maven artifacts to Nexus repository---------------
-We need Sonatype Nexus Artifact Uploader(for uploading artifact) and Pipeline Utility Steps (for fetching artifact detais from pom) plugins to download in jenkins. 
+We need Sonatype Nexus Artifact Uploader(for uploading artifact) and Pipeline Utility Steps (for fetching artifact detaits from pom) plugins to download in jenkins. 
 referrence: https://blog.sonatype.com/workflow-automation-publishing-artifacts-to-sonatype-nexus-using-jenkins-pipelines
 
 pipeline{
@@ -730,7 +729,7 @@ pipeline{
   }
 
 
-Note: if you want to run Jenkins as container then use helm chart to install jenkins. Jenkins if running as pod then it always spins JNLP container with all slave pods for communication and task execution on slave pods on port 50000. when we install jenkins using helm chart, JNLP container template configuration are in built. 
+Note: if you want to run Jenkins as container then use helm chart to install jenkins. Jenkins if running as pod then it always spins JNLP container within all slave pods for communication and JNLP container runs on port 50000. when we install jenkins using helm chart, JNLP container template configuration are in built. 
 
 
 -----------------------inheritFrom concept-------------------------------
@@ -740,18 +739,18 @@ Here's how it typically works:
 1. Jenkins Master Setup:
 Jenkins, running in a container or another deployment in your Kubernetes cluster, has access to DockerHub.
 Jenkins is configured with the default pod template, which includes the JNLP container and any other necessary configurations.
-Agent Pod Creation:
 
+2. Agent Pod Creation:
 When a Jenkins job is triggered and requires an agent, Jenkins dynamically creates a new pod based on the configured pod template.
 
-2. Docker Image Pull:
+3. Docker Image Pull:
 If the pod template specifies a Docker image from DockerHub (e.g., the JNLP container or any other tools), Jenkins will attempt to pull that image.
 
-3. Jenkins as Docker Registry Proxy:
+4. Jenkins as Docker Registry Proxy:
 Jenkins acts as a proxy for DockerHub in this case. It pulls the necessary images from DockerHub and caches them locally.
 The Jenkins master then serves as the registry for the Jenkins agents within the Kubernetes cluster.
 
-4. Agent Pod Execution:
+5. Agent Pod Execution:
 Once the pod is created and the necessary Docker images are available locally in the Jenkins master, the agent pod is launched with the specified containers.
 
 // Shared pod template named 'default'
@@ -794,6 +793,7 @@ pipeline {
 
 If you don't provide any additional pod manifest in the kubernetes block and use inheritFrom 'default', Jenkins will use the inherited configurations as the pod template for the agent. In this scenario, the 'default' pod template would define the containers, images, volumes, and other settings for the agent pod.
 
+
 ---------------------------------------------------------------End to End pipeline----------------------------------------------------------------------
 Pipeline includes pods as build agents,maven,nexus,sonarqube and helm
 
@@ -802,7 +802,7 @@ Pipeline includes pods as build agents,maven,nexus,sonarqube and helm
 3. install jenkins through helm chart
 helm repo add jenkins https://charts.jenkins.io
 helm repo update
-helm pull jenkins/jenkins --untar
+helm pull jenkins/jenkins --untar			
 
 helm upgrade --install jenkins jenkins/ 					--> you have to make below changes in values.yaml file and then execute
 or 
@@ -854,7 +854,7 @@ pipeline{
   }
 
 
-Note: if you want to run Jenkins as container then use helm chart to install jenkins. Jenkins if running as pod then it always spins JNLP container with all slave pods for communication and task execution on slave pods on port 50000. when we install jenkins using helm chart, JNLP container (inbound agent) template configuration are in built. 
+Note: if you want to run Jenkins as container then use helm chart to install jenkins. Jenkins if running as pod then it always spins JNLP container within all slave pods for communication and JNLP conrainer accepts task from jenkins on port 50000. when we install jenkins using helm chart, JNLP container (inbound agent) template configuration are in built. 
 
 When using Jenkins with Kubernetes agents, the common approach for sharing files between containers in a pod is to use shared volumes. The emptyDir volume is one option. Jenkins uses the Kubernetes Plugin, which supports several ways of sharing data between containers in a pod. When you define a pod template in Jenkins using the Kubernetes Plugin, you can specify volumes that should be mounted into the containers.
 
@@ -1024,4 +1024,635 @@ pipeline{
                     }
                 }
           }
+
+
+----------------send maven build to nexus------------------------
+refer: https://artifacthub.io/packages/helm/sonatype/nexus-repository-manager
+
+1. install nexus using helm chart
+helm repo add sonatype https://sonatype.github.io/helm3-charts/
+helm repo update
+helm pull sonatype/nexus-repository-manager --untar
+
+helm upgrade --install nexus nexus-repository-manager/
+kubectl exec -it nexus-nexus-repository-manager-5745766765-5pjcf -- bash
+cat /nexus-data/admin.password
+
+2. download nexusArtifactUploader and pipeline utility steps plugin
+3. manage jenkins --> global security --> credentials --> add nexus credentials as nexus-creds
+4. spin pod with curl installed 
+
+pipeline{
+  agent{
+    kubernetes{
+      //inheritFrom 'default'	
+      yaml '''
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          name: test
+      spec:
+        containers:
+        - name: maven
+          image: maven:alpine
+          command:
+          - cat
+          tty: true
+	  volumeMounts:
+          - name: maven-cache
+            mountPath: /root/.m2/repository/
+        - name: SCM
+          image: git:alpine
+          command: 
+          - cat
+          tty: true
+        volumes:
+        - name: cache
+          persistentVolumeClaim:
+              claimName: maven-cache
+        - name: sonar-cli
+          image: sonarsource/sonar-scanner-cli:latest
+          command:
+          - cat
+          tty: true
+        - name: curl
+          image: alpine/curl:latest
+          command:
+          - cat
+          tty: true
+       '''}
+     }
+     environment{
+	NEXUS_PROTOCOL='http'
+	NEXUS_VERSION='nexus3'
+	NEXUS_URL='IP:8081'
+	NEXUS_REPOSITORY='maven-hosted'
+	NEXUS_CREDENTIAL_ID='nexus-creds'
+         }
+
+    stages{
+        stage('Checkout SCM'){
+	    when { expression { true } }
+            steps{
+                container('git'){
+                    sh 'git clone URL'
+                              }
+                   }
+                }
+         stage('Build'){
+	     when { expression { true } }
+             steps{
+                 container('maven'){
+                     sh 'mvn clean -DskipTests package'
+                             }
+                    }
+		post{
+                     JUnit '**/target/reports/*.xml'
+                     }
+              }
+         }
+        stage('Sonar scan'){
+           when { expression { true } }
+           steps{
+                container('sonar-cli'){
+                 withSonarQubeEnv(credentialsId: 'sonar', installationName: 'sonarserver'){	--> withSonarQubeEnv() wrapper used to send scan details with server
+                     sh ''' /opt/sonar-scanner/bin/sonar-scanner \  			--> execute sonar-scanner binary
+			-Dsonar.projectKey=petclinic \
+			-Dsonar.projectName=petcliic \
+			-Dsonar.projectVersion=1.0 \
+			-Dsonar.sources=src/main \
+			-Dsonar.tests=src/test \
+			-Dsonar.java.binaries=target/classes \
+			-Dsonar.language=java \
+			-Dsonar.sourceEncoding=UTF8 \
+			-Dsonar.java.libraries=target/classes 
+                       '''
+                     }
+                   }
+                }
+             }
+          stage('Wait for quality gate'){
+              when { expression { true } }
+              steps{
+                      container('sonar-cli'){
+                         timeout(time: 1, unit: 'HOURS'){			--> create sonarqube-webhook in sonarqube so that it will send QG info to jenkins
+                            waitForQualityGate abortPipeline: true		--> wait for quality get information to reach jenkins if not then abort pipeline
+                            }
+                          }
+                    }
+                }
+          stage('push maven to Nexus'){
+	       when { expression { false } }
+               steps{
+                    container('jnlp'){
+                          script{
+				pom = readMavenPom file: "pom.xml";
+				filesByGlob = findFiles(glob:"target/*.${pom.packaging}");
+				artifactPath = filesByGlob[0].path;
+				artifactExists = fileExists artifactPath;
+				if (artifactExists){
+					nexusArtifactUploader(
+						nexusVersion: NEXUS_VERSION,
+						protocol: NEXUS_PROTOCOL,
+						nexusUrl: NEXUS_URL,
+						groupId: pom.groupId,
+						version: pom.version,
+						repository: NEXUS_REPOSITORY,
+						credential_Id: NEXUS_CREDENTIAL_ID,
+						artifacts: [
+						[artifactId: pom.artifactId,
+						 classifiers: '',
+						 file: artifactPath,
+						 type: pom.packaging],
+						
+						[artifactId: pom.atifactId,
+						 classifiers: '',
+						 file: "pom.xml",
+						 type: "pom"]
+                                              ]
+					);
+						
+				}else{
+					echo "***FILE: ${artifactpath} could not be found";
+				   }
+
+                              }  
+                          }
+                       }
+                  }
+            stage('Push maven to nexus through CURL'){
+	   	   when { expression { true } }
+                   steps{
+                        container('curl'){
+                          script{
+				withCredentials([usernamePassword(credentialsId:'nexus-creds', passwordVariable:'pass', userVariable:'usr')]){
+					pom = readMavenPom file: "pom.xml";
+					sh "curl -v -u $usr:$pass --upload-file target/${pom.artifactId}-${pom.version}-${pom.packaging} \
+					http://$NEXUS_URL/repository/$NEXUS_REPOSITORY/org/springframework/samples/${pom.artifactId}/${pom.version}/							${pom.artifactId}-${pom.version}-${pom.packaging}"
+						
+					}
+			        }
+                             }
+                        }
+                    }
+
+ 		}
+ 	}
+------------Build docker image from war file--------------------
+1. spin docker cli container as k8s agent
+2. add dockerhub credentials in manage jenkins --> global credentials --> credentials
+3. mount /var/run/docker.sock hostPath in above container so that docker container (docker cli) can use of /var/run/docker.sock file to connect to docker daemon from host to perform docker commands. 
+4. create dockerfile 
+FROM openjdk:8-jre-alpine
+COPY target/*.war /usr/bin/spring-petclinic.war
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","/usr/bin/spring-petclinic.war","--server.port=8080"]
+
+
+pipeline{
+  agent{
+    kubernetes{
+      //inheritFrom 'default'	
+      yaml '''
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          name: test
+      spec:
+        containers:
+        - name: maven
+          image: maven:alpine
+          command:
+          - cat
+          tty: true
+	  volumeMounts:
+          - name: maven-cache
+            mountPath: /root/.m2/repository/
+        - name: SCM
+          image: git:alpine
+          command: 
+          - cat
+          tty: true
+        - name: sonar-cli
+          image: sonarsource/sonar-scanner-cli:latest
+          command:
+          - cat
+          tty: true
+        - name: curl
+          image: alpine/curl:latest
+          command:
+          - cat
+          tty: true
+        - name: docker
+          image: docker:latest
+          command:
+          - cat
+          tty: true
+          volumeMounts:
+          - name: docker-sock
+            mountPath: /var/run/docker.sock
+        volumes:
+        - name: cache
+          persistentVolumeClaim:
+              claimName: maven-cache
+        - name: docker-sock
+          hostpath: 
+             path: /var/run/docker.sock
+       '''}
+     }
+     environment{
+	NEXUS_PROTOCOL='http'
+	NEXUS_VERSION='nexus3'
+	NEXUS_URL='IP:8081'
+	NEXUS_REPOSITORY='maven-hosted'
+	NEXUS_CREDENTIAL_ID='nexus-creds'
+	DOCKERHUB_USER='shantayya'
+	APP_NAME='petclinic'
+	IMAGE_NAME="${DOCKERHUB_USER}"+ "/" + "${APP_NAME}"
+	IMAGE_TAG=$BUILD_NUMBER
+         }
+
+    stages{
+        stage('Checkout SCM'){
+	    when { expression { true } }
+            steps{
+                container('git'){
+                    sh 'git clone URL'
+                              }
+                   }
+                }
+         stage('Build'){
+	     when { expression { true } }
+             steps{
+                 container('maven'){
+                     sh 'mvn clean -DskipTests package'
+                             }
+                    }
+		post{
+                     JUnit '**/target/reports/*.xml'
+                     }
+              }
+         }
+        stage('Sonar scan'){
+           when { expression { true } }
+           steps{
+                container('sonar-cli'){
+                 withSonarQubeEnv(credentialsId: 'sonar', installationName: 'sonarserver'){	--> withSonarQubeEnv() wrapper used to send scan details with server
+                     sh ''' /opt/sonar-scanner/bin/sonar-scanner \  			--> execute sonar-scanner binary
+			-Dsonar.projectKey=petclinic \
+			-Dsonar.projectName=petcliic \
+			-Dsonar.projectVersion=1.0 \
+			-Dsonar.sources=src/main \
+			-Dsonar.tests=src/test \
+			-Dsonar.java.binaries=target/classes \
+			-Dsonar.language=java \
+			-Dsonar.sourceEncoding=UTF8 \
+			-Dsonar.java.libraries=target/classes 
+                       '''
+                     }
+                   }
+                }
+             }
+          stage('Wait for quality gate'){
+              when { expression { true } }
+              steps{
+                      container('sonar-cli'){
+                         timeout(time: 1, unit: 'HOURS'){			--> create sonarqube-webhook in sonarqube so that it will send QG info to jenkins
+                            waitForQualityGate abortPipeline: true		--> wait for quality get information to reach jenkins if not then abort pipeline
+                            }
+                          }
+                    }
+                }
+          stage('push maven to Nexus'){
+	       when { expression { false } }
+               steps{
+                    container('jnlp'){
+                          script{
+				pom = readMavenPom file: "pom.xml";
+				filesByGlob = findFiles(glob:"target/*.${pom.packaging}");
+				artifactPath = filesByGlob[0].path;
+				artifactExists = fileExists artifactPath;
+				if (artifactExists){
+					nexusArtifactUploader(
+						nexusVersion: NEXUS_VERSION,
+						protocol: NEXUS_PROTOCOL,
+						nexusUrl: NEXUS_URL,
+						groupId: pom.groupId,
+						version: pom.version,
+						repository: NEXUS_REPOSITORY,
+						credential_Id: NEXUS_CREDENTIAL_ID,
+						artifacts: [
+						[artifactId: pom.artifactId,
+						 classifiers: '',
+						 file: artifactPath,
+						 type: pom.packaging],
+						
+						[artifactId: pom.atifactId,
+						 classifiers: '',
+						 file: "pom.xml",
+						 type: "pom"]
+                                              ]
+					);
+						
+				}else{
+					echo "***FILE: ${artifactpath} could not be found";
+				   }
+
+                              }  
+                          }
+                       }
+                  }
+            stage('Push maven to nexus through CURL'){
+	   	   when { expression { true } }
+                   steps{
+                        container('curl'){
+                          script{
+				withCredentials([usernamePassword(credentialsId:'nexus-creds', passwordVariable:'pass', userVariable:'usr')]){
+					pom = readMavenPom file: "pom.xml";
+					sh "curl -v -u $usr:$pass --upload-file target/${pom.artifactId}-${pom.version}-${pom.packaging} \
+					http://$NEXUS_URL/repository/$NEXUS_REPOSITORY/org/springframework/samples/${pom.artifactId}/${pom.version}/							${pom.artifactId}-${pom.version}-${pom.packaging}"
+						
+					}
+			        }
+                             }
+                        }
+                    }
+
+	     stage('Docker build image'){
+                   steps{
+                        container('docker'){
+					sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+					sh 'docker tag $IMAGE_NAME/$IMAGE_TAG $IMAGE_NAME:latest'
+					withCredentials([usernamePassword(crdentialsId:'dockerhub', passwordVariable:'pass', userVariable:'user')]){
+						sh 'docker login -u $user -p $pass'
+						sh 'docker push $IMAGE_NAME/$IMAGE_TAG'
+						sh 'docker push $IMAGE_NAME/latest'
+                                         }
+					sh 'docker rmi $IMAGE_NAME/$IMAGE_TAG'
+					sh 'docker rmi $IMAGE_NAME/latest'
+                                      }
+                         }
+                }
+          }
+   }
+
+
+------------------Deploy to kubernetes cluster-----------------------
+1. create dockerfile for creating image having helm and kubectl
+FROM alpine/helm
+RUN curl -LO https://dl.k8s.io/release/v1.25.0/bin/linux/amd64/kubectl \
+    && mv kubectl /bin/kubectl \
+    && chmod a+x /bin/kubectl
+
+docker build -t helm-kubectl-cli .
+docker push helm-kubectl-cli
+ 
+2. download kubernetes cli plugin 
+3. download kubeconfig file from digital ocean and manage jenkins --> manage credentials --> add secret file(kubeconfig file) as do-kc
+4. download deployment.yaml file
+apiVersion: v1
+kind: Deployment
+metadata:
+  labels:
+    app: petclinic
+spec:
+  replicas: 1
+  selectors:
+    matchLabels:
+      app: petclinic
+  template:
+    metadata:
+      labels:
+        app: petclinic
+    spec:
+  	containers:
+  	- name: petclinic
+    	  image: shantayya/petclinc:latest
+          ports:
+          - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: petclinic
+spec:
+  type: Loadbalancer
+  selector:
+      app: petclinic
+  ports:
+  - port: 80
+    containerPort: 8080
+ 
+5. create  helm-kubectl container from step 1
+pipeline{
+  agent{
+    kubernetes{
+      //inheritFrom 'default'	
+      yaml '''
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          name: test
+      spec:
+        containers:
+        - name: maven
+          image: maven:alpine
+          command:
+          - cat
+          tty: true
+	  volumeMounts:
+          - name: maven-cache
+            mountPath: /root/.m2/repository/
+        - name: SCM
+          image: git:alpine
+          command: 
+          - cat
+          tty: true
+        - name: sonar-cli
+          image: sonarsource/sonar-scanner-cli:latest
+          command:
+          - cat
+          tty: true
+        - name: curl
+          image: alpine/curl:latest
+          command:
+          - cat
+          tty: true
+        - name: docker
+          image: docker:latest
+          command:
+          - cat
+          tty: true
+          volumeMounts:
+          - name: docker-sock
+            mountPath: /var/run/docker.sock
+        - name: helm-kubectl-cli
+          image: shantayya/helm-kubectl-cli
+          command:
+          - cat
+          tty: true
+        volumes:
+        - name: cache
+          persistentVolumeClaim:
+              claimName: maven-cache
+        - name: docker-sock
+          hostpath: 
+             path: /var/run/docker.sock
+       '''}
+     }
+     environment{
+	NEXUS_PROTOCOL='http'
+	NEXUS_VERSION='nexus3'
+	NEXUS_URL='IP:8081'
+	NEXUS_REPOSITORY='maven-hosted'
+	NEXUS_CREDENTIAL_ID='nexus-creds'
+	DOCKERHUB_USER='shantayya'
+	APP_NAME='petclinic'
+	IMAGE_NAME="${DOCKERHUB_USER}"+ "/" + "${APP_NAME}"
+	IMAGE_TAG=$BUILD_NUMBER
+         }
+
+    stages{
+        stage('Checkout SCM'){
+	    when { expression { true } }
+            steps{
+                container('git'){
+                    sh 'git clone URL'
+                              }
+                   }
+                }
+         stage('Build'){
+	     when { expression { true } }
+             steps{
+                 container('maven'){
+                     sh 'mvn clean -DskipTests package'
+                             }
+                    }
+		post{
+                     JUnit '**/target/reports/*.xml'
+                     }
+              }
+         }
+        stage('Sonar scan'){
+           when { expression { true } }
+           steps{
+                container('sonar-cli'){
+                 withSonarQubeEnv(credentialsId: 'sonar', installationName: 'sonarserver'){	--> withSonarQubeEnv() wrapper used to send scan details with server
+                     sh ''' /opt/sonar-scanner/bin/sonar-scanner \  			--> execute sonar-scanner binary
+			-Dsonar.projectKey=petclinic \
+			-Dsonar.projectName=petcliic \
+			-Dsonar.projectVersion=1.0 \
+			-Dsonar.sources=src/main \
+			-Dsonar.tests=src/test \
+			-Dsonar.java.binaries=target/classes \
+			-Dsonar.language=java \
+			-Dsonar.sourceEncoding=UTF8 \
+			-Dsonar.java.libraries=target/classes 
+                       '''
+                     }
+                   }
+                }
+             }
+          stage('Wait for quality gate'){
+              when { expression { true } }
+              steps{
+                      container('sonar-cli'){
+                         timeout(time: 1, unit: 'HOURS'){			--> create sonarqube-webhook in sonarqube so that it will send QG info to jenkins
+                            waitForQualityGate abortPipeline: true		--> wait for quality get information to reach jenkins if not then abort pipeline
+                            }
+                          }
+                    }
+                }
+          stage('push maven to Nexus'){
+	       when { expression { false } }
+               steps{
+                    container('jnlp'){
+                          script{
+				pom = readMavenPom file: "pom.xml";
+				filesByGlob = findFiles(glob:"target/*.${pom.packaging}");
+				artifactPath = filesByGlob[0].path;
+				artifactExists = fileExists artifactPath;
+				if (artifactExists){
+					nexusArtifactUploader(
+						nexusVersion: NEXUS_VERSION,
+						protocol: NEXUS_PROTOCOL,
+						nexusUrl: NEXUS_URL,
+						groupId: pom.groupId,
+						version: pom.version,
+						repository: NEXUS_REPOSITORY,
+						credential_Id: NEXUS_CREDENTIAL_ID,
+						artifacts: [
+						[artifactId: pom.artifactId,
+						 classifiers: '',
+						 file: artifactPath,
+						 type: pom.packaging],
+						
+						[artifactId: pom.atifactId,
+						 classifiers: '',
+						 file: "pom.xml",
+						 type: "pom"]
+                                              ]
+					);
+						
+				}else{
+					echo "***FILE: ${artifactpath} could not be found";
+				   }
+
+                              }  
+                          }
+                       }
+                  }
+            stage('Push maven to nexus through CURL'){
+	   	   when { expression { true } }
+                   steps{
+                        container('curl'){
+                          script{
+				withCredentials([usernamePassword(credentialsId:'nexus-creds', passwordVariable:'pass', userVariable:'usr')]){
+					pom = readMavenPom file: "pom.xml";
+					sh "curl -v -u $usr:$pass --upload-file target/${pom.artifactId}-${pom.version}-${pom.packaging} \
+					http://$NEXUS_URL/repository/$NEXUS_REPOSITORY/org/springframework/samples/${pom.artifactId}/${pom.version}/							${pom.artifactId}-${pom.version}-${pom.packaging}"
+						
+					}
+			        }
+                             }
+                        }
+                    }
+
+	     stage('Docker build image'){
+                   steps{
+                        container('docker'){
+					sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+					sh 'docker tag $IMAGE_NAME/$IMAGE_TAG $IMAGE_NAME:latest'
+					withCredentials([usernamePassword(crdentialsId:'dockerhub', passwordVariable:'pass', userVariable:'user')]){
+						sh 'docker login -u $user -p $pass'
+						sh 'docker push $IMAGE_NAME/$IMAGE_TAG'
+						sh 'docker push $IMAGE_NAME/latest'
+                                         }
+					sh 'docker rmi $IMAGE_NAME/$IMAGE_TAG'
+					sh 'docker rmi $IMAGE_NAME/latest'
+                                      }
+                         }
+                }
+          }
+            stage('Deploy to kubernetes'){
+                steps{
+                      container('helm-kubectl-cli'){
+			   script{
+				withKubeConfig([credentialsId='do_kc']){		--> withKubeConfig() wrapper is scripted syntax so used in script block
+   	           		sh 'kubectl deploy -f deployment.yaml'
+        	    		}
+			    }
+		 	  }
+		     }
+                } 
+   }
+
+
+
+--------------------------GitOps with ArgoCD-----------------------------
+
+
 
