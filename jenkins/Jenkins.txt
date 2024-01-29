@@ -1,6 +1,9 @@
+CloudBees Jenkins 2.346.40.0.16   (release update every 2 month)
+
 Jenkins open source automation server that is used to automate all sort of tasks related to building(maven), testing(Junit), delivering and even deploying the software.
 
 Jenkins Plugins:
+Jenkins functionality can be extended through plugins. Plugins provide additional features and integrations with various tools
 Jenkins has plugin repository where you can download .hpi file and upload it your server. Manage jenkins --> manage plugins --> Advanced
 or copy to plugin directory /var/lib/jenkins
 
@@ -47,12 +50,12 @@ configuration parameter available at: /etc/sysconfig/jenkins like to change JENK
 Sequential set of tasks that user defines. ex: a Job can fetch source code from version control,build the code,run unit tests etc
 job is synonymous with project. 
 Jenkins support 2 types of jobs boradly:
-1. Freestyle			--> default job types in jenkins. includes ad-hoc tasks,running shell commands, invoke ansible playbook etc
-2. Pipeline			--> series of build steps
+1. Freestyle	--> default job type and are configured through the Jenkins web UI and are suitable for simple and straightforward tasks like running shell cmnds
+2. Pipeline	--> series of build steps and maintained as code. 
 
 number of job types depends on the plugin that you have installed. ex: maven project/job is only available if you installed the maven plugin. 
 other job types include:
-3. multibranch pipeline 
+3. multibranch pipeline 			--> creates separate folder for each branch and creates job inside it. 
 4. Folder					--> not a job type rather a way how you arrange jobs. 
 5. Multiconfiguration project
 
@@ -66,23 +69,66 @@ system configuration:
 1. configure system (now system): configure gobal settings(email(normal and extended) notification, global properties like env var,tools locations etc,system msg to promulgate msg for jenkins users like maintainance,executors(number of vCPU's) shows number of jobs can run at a time, quite period(buffer time to kick off jobs),SCM checkout retry count,Jenkins URL, and paths (JDK).
 
 2. global tool configuration (tools): configure the paths of the tools which you integrate with jenkins. provides auto installation also
-3. Manage plugins: Jenkins functionality can be extended through plugins. Plugins provide additional features and integrations with various tools. Mostly Jenkins server will not have opened to iternet so use plugin manager to configure proxy settings so that Jenkins can connect to internet to download Plugins. 
+3. Manage plugins: Jenkins functionality can be extended through plugins. Plugins provide additional features and integrations with various tools. Mostly Jenkins server will not opened to iternet so use plugin manager to configure proxy settings so that Jenkins can connect to internet to download Plugins. 
 
 4. manage nodes and cloud: manage configuration of nodes (adding new node,configure their usage (number of executors,label), specify target node for job execution etc)
 
 Note: 0 in executor specify no job will run on master. we can specify label to run jobs on slave always. 
+global configuration (executors) at the system level sets a default number of executors for the Jenkins instance, while the node-specific configuration allows you to customize the number of executors for each individual node. 
 
-security:
+Each executor represents a slot for running a job, so increasing the number of executors allows more jobs to run concurrently on that specific node.
+
+1. Number of Executors at Node Level:
+Increasing the number of executors at the node level allows for concurrent builds on that node. If the executor count is set to 1, only one build can run at a time on the node. If the executor count is greater than 1, multiple builds can run concurrently on that node.
+
+2. "Execute concurrent builds if necessary" Option:
+Enabling this option allows Jenkins to queue up additional builds for a job, labeled "linux" in your example, even if the job is currently executing on a node. Builds will be queued until an executor becomes available. If there are three executors and you run the job four times, Jenkins will execute three builds concurrently, and the fourth build will be queued.
+
+3. Throttle Builds Option:
+Throttle Builds helps limit the number of concurrent builds for a specific job or group of jobs. If you have three executors and set the throttle build count to 2 for a job labeled "linux," only two builds of that job will execute concurrently, and any additional builds will be queued until an executor becomes available. If you run the job four times, only two builds will execute in parallel, and the remaining two will be queued.
+
+Security:
+Athentication: The process of verifying the user's identity. who the user is.
+Authorization: The process of determining what actions the verified user is allowed to perform.
+
 1. credentials: 
 	1. username and password
 	2. certificate
 	3. ssh username with privateKeys
-	4. seret text
+	4. secret text (like tokens)
 	5. secret file
 
-2. Configure global security	--> authorization --> matrix baed security 
+2. Configure global security	--> authorization --> matrix based security 
+Enabling Security: Enable security to ensure a secure Jenkins environment.
+Access control: 
+	1.Security realm (Authentication): 
+		Jenkins own user database (allow to signup), LDAP, Unix user/group database.
+	2. Authorization: 
+		Checkbox options:
+		1. "Anyone can do anything" (less secure).
+		2. Legacy mode.
+		3. Logged-in users can do anything.
+		4. Anonymous read access (viewing jobs without manipulation).
+		5. Matrix-based security (granular permissions).
+		6. Project-Based Matrix Authorization Strategy
+
+Matrix based security:  In the matrix, you can define permissions for specific users or groups for each job or project(contexts). 
+Inheritance authorization Strategies: 
+	1. Inherit from Parent: Permissions cascade from parent to child (for projects in a folder).
+	2. Inherit Globally Defined Permissions: Only global permissions are applied (ignores folder permissions).
+	3. Do Not Inherit: No permissions inherited from ancestors.
+Note: Jenkins follows an explicit allow model.
+
+Project-Based Matrix Authorization Strategy: Granular permissions at the project level. Explicitly setting permissions at specific job or folder levels.
+
+Role-Based Access Control (RBAC): Global security --> enable role based strategy --> manage roles option will appear under security
+	1. Jenkins supports RBAC, allowing you to create and assign roles with specific permissions.
+	2. Install and configure the "Role-based Authorization Strategy" plugin through the Jenkins Plugin Manager.
+	3. Define roles and assign them to users or groups, specifying permissions for each role.
+	4. Roles can be job-specific, allowing you to control access at the project level.
+
 3. manage users
-4. configure credential provider
+4. configure credential provider: A location configured for Jenkins to retrieve credentials. ex: LDAP, Active Directory, SSO,any configured source.
 
 status information
 
@@ -96,7 +142,7 @@ General:
 3. GitHub project
 4. This project is parameterized
 5. Throttle builds
-6. Execute concurrent builds if necessary
+6. Execute concurrent builds if necessary	
 7. Restrict where this project can be run (labels)
 8. Advanced: Quite period,retry count,Block build if upstream/downstream project is building,use custome workspace [checkboxes]
 
@@ -231,12 +277,11 @@ repo --> settings --> webhook --> add webhook --> JENKINS_URL/generic-webhook-tr
 Allows user to define properties for folder which can then be used by any jobs contained within it or any of its sub-folder. 
 
 
-
 ---------------------------------Build with parameters--------------------------
 Build parameters allows you to pass data into jenkins job. Supported parameters include Strings, Boolean, choices, Files,Credentials, password, URL to another job etc. 
 In FreeStyle job,you can access parameter just like any env variable ${PARAMETER_NAME}
 
-curl --user admin(user):token "JENKINS_URL/jobs/jobname/buildWithParameter?Token=test123&IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
+curl --user admin(user):token "JENKINS_URL/jobs/jobname/buildWithParameters?Token=test123&IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
 curl -X POST --user admin(user):token "JENKINS_URL/jobs/jobname/build?Token=test123" --data "IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
 
 ---Active choices plugin---
@@ -287,7 +332,7 @@ parameterized = data["isTheJobParameterized"]
 
 #call remote job
 if parametrized:
-  URL = jenkins_url+'/jobs/'+job_name+'/buildWithParameter?token='+job_token
+  URL = jenkins_url+'/jobs/'+job_name+'/buildWithParameters?token='+job_token
   my_data = data["my_data"]
 else:
   URL = jenkins_url+'/jobs/'+job_name+'/build?token='+job_token
@@ -435,7 +480,7 @@ pipeline{
  }
 
 -------------Timeout and retries------
-We cab retry certain steps in pipeline if they are failing or exit if steps take too long. (timeout)
+We can retry certain steps in pipeline if they are failing or exit if steps take too long. (timeout)
 when step cannot be completed then timeout help the controller avoid wasting resources and release executors. 
 syntax: options {timeout(time: 1,unit: 'HOURS')}
 	options {retry(3)}
@@ -796,6 +841,9 @@ If you don't provide any additional pod manifest in the kubernetes block and use
 
 ---------------------------------------------------------------End to End pipeline----------------------------------------------------------------------
 Pipeline includes pods as build agents,maven,nexus,sonarqube and helm
+#To see the containers running inside pods:
+kubectl get pods <pod-name> -o jsonpath='{.spec.containers[*].name}'
+kubectl exec -it <pod-name> -c <container-name> -- bash					--> to get into container
 
 1. create k8s cluster on digital ocean and downlaod kubeconfig file locally
 2. download helm and kubectl and set path 
@@ -893,7 +941,7 @@ pipeline{
           tty: true
 	  volumeMounts:
           - name: maven-cache
-            mountPath: /root/.m2/repository/
+            mountPath: "/root/.m2/repository/"
         - name: SCM
           image: git:alpine
           command: 
@@ -921,7 +969,9 @@ pipeline{
                              }
                     }
 		post{
+		   success{
                      JUnit '**/target/reports/*.xml'
+ 			}
                      }
               }
          }
@@ -991,7 +1041,9 @@ pipeline{
                              }
                     }
 		post{
+		   success{
                      JUnit '**/target/reports/*.xml'
+			}
                      }
               }
          }
@@ -1652,7 +1704,139 @@ pipeline{
 
 
 
---------------------------GitOps with ArgoCD-----------------------------
+--------------------------Jenkins Shared libraries---------------------
+Jenkins shared libraries enable you to define and organize common code, functions, and steps that can be reused across multiple Jenkins pipelines. 
+Jenkins says the put the repetative code(function or method) as library in jenkins repo and use function referrence in stage for reusability of pipeline as code. It helps to standardise the pipeline and need to introduce minimul code when writing new pipeline.  
+
+How to implement shared library:
+1. Assume repo structure 
+jenkins-repo
+|-- vars
+|   -- helloWorld.groovy
+|-- ...
+
+2. create shared library under vars folder in github repository.
+jenkins --> repo name
+vars/helloWorld.groovy file create
+def call(){
+ sh 'This is shared library'
+ }
+
+3. manage jenkins --> configure system --> Global pipeline library --> add shared library name(which to be referred in pipelines) and git repo
+4. import shared library in pipeline 
+@Library('shared_library_name') _			--> here space _ shows all functions under library
+
+5. call library_name() from vars/ folder in stage.
+stage{
+ steps{
+    helloWorld()			--> file name not the function inside file. 
+  }
+}
 
 
+
+-------------------------------------Interview Questions---------------------------------
+1Q. Whats the difference between Matrix based security and RBAC?
+Matrix-based security and Role-Based Access Control (RBAC) in Jenkins serve similar purposes but have some differences in terms of implementation and granularity of access control.
+
+Matrix-Based Security is more focused on specifying permissions per user/group per job, lacking the role abstraction that RBAC provides.
+Challenges with Matrix-Based Security:
+Scalability: As the number of teams, projects, and permissions increases, managing the matrix for each job might become complex.
+Hierarchy: Achieving hierarchical roles, especially when dealing with sub-teams or nuanced permission structures, can be challenging.
+Group Maintenance: Ensure proper management of group memberships, especially as teams change or when new users join or leave.
+
+Scenarios that might be challenging to achieve with Matrix-Based Security alone. 
+You want to implement a role-based access control structure with different permission levels for different teams across multiple projects. Each team should have a role defining their access to jobs, views, and other Jenkins resources.
+
+The ability to create roles, define permissions, and structure access based on projects and teams makes RBAC a powerful choice for complex Jenkins environments.
+
+
+2Q. Can you explain the CICD process in your current project ? or Can you talk about any CICD process that you have implemented ?
+In the current project we have been using tools orchestrated with Jenkins to achieve CICD.
+Maven, SonarQube, Docker, Trivy, Nexus and Kubernetes
+Coming to the implementation, the entire process takes place in 8 steps
+1. Code Commit: Developers commit code changes to a Git repository hosted on GitHub.
+2. Jenkins Build: Job is triggered to build the code using Maven. Maven builds the code and runs unit tests.
+3. Code Analysis: Sonar is used to perform static code analysis to identify any code quality issues, security vulnerabilities, and bugs.
+4. Security Scan: AppScan is used to perform a security scan on the application to identify any security vulnerabilities.
+5. Deploy to Dev Environment: If the build and scans pass, Jenkins deploys the code to a development environment managed by Kubernetes.
+6. Continuous Deployment: ArgoCD is used to manage continuous deployment. ArgoCD watches the Git repository and automatically deploys new changes to the development environment as soon as they are committed.
+7. Promote to Production: When the code is ready for production, it is manually promoted using ArgoCD to the production environment.
+8. Monitoring: The application is monitored for performance and availability using Kubernetes tools and other monitoring tools.
+
+
+3Q. What are the different ways to trigger jenkins pipelines ?
+This can be done in multiple ways, To briefly explain about options,
+1. Trigger builds remotely (from script)
+2. Build after other projects are build (upstream and downstream jobs)
+3. Build periodically  (cronjob)
+4. GitHub hook trigger for GitSCM polling
+5. Poll SCM (cronjob) but build only if any SCM changes. 
+
+4Q. How to backup Jenkins ?
+Basically 2 ways we can backup jenkins
+1. if jenkins running as service then taken snapshot of the ebs volume or use rsync to backup /var/lib/jenkins dir (we can exclude workspace dir) to avoid copying unnecessary files 
+2. if jenkins is running as K8s pod then we can backup the mounted PV (take snapshot of volume) or tools like Velero or Kasten K10 are commonly used for Kubernetes backups.
+
+One can schedule the backups to occur regularly, such as daily or weekly, to ensure that you always have a recent copy of your Jenkins environment available.
+
+
+5Q. How can we restore the job cnfiguration or version control it?
+We can version-control your Jenkins configuration using the Jenkins Job Configuration History plugin.
+
+
+6Q. How do you store/secure/handle secrets in Jenkins ?
+there are multiple ways to achieve this, Let me give you a brief explanation of all the posible options,
+   1. Credentials Plugin: Jenkins provides a credentials plugin that can be used to store secrets such as username and passwords, ssh with username and private 	key,certificates, secret text and secret file. 
+
+   2. Environment Variables: Secrets can be stored as environment variables in Jenkins and referenced in build scripts. However, this method is less secure because 	environment variables are visible in the build logs.
+   
+   3. Hashicorp Vault: Jenkins can be integrated with Hashicorp Vault, which is a secure secrets management tool. Vault can be used to store and manage sensitive	 information, and Jenkins can retrieve the secrets as needed for builds.
+   
+   4. Third-party Secret Management Tools: Jenkins can also be integrated with third-party secret management tools such as AWS Secrets Manager, Google Cloud Key 	Management Service, and Azure Key Vault.
+
+7Q. What is shared modules in Jenkins ?
+Shared modules in Jenkins refer to a collection of reusable code and resources that can be shared across multiple Jenkins jobs. This allows for easier maintenance, reduced duplication, and improved consistency across multiple build processes. For example, shared modules can be used in cases like:
+1. Libraries: Custom Java libraries, shell scripts, and other resources that can be reused across multiple jobs.
+2. Jenkinsfile: A shared Jenkinsfile can be used to define the build process for multiple jobs, reducing duplication and making it easier to manage the build process for multiple projects.
+3. Plugins: Common plugins can be installed once as a shared module and reused across multiple jobs, reducing the overhead of managing plugins on individual jobs.
+4. Global Variables: Shared global variables can be defined and used across multiple jobs, making it easier to manage common build parameters such as version numbers, artifact repositories, and environment variables.
+
+
+8Q. Can you use Jenkins to build applications with multiple programming languages using different agents in different stages ?
+Yes, Jenkins can be used to build applications with multiple programming languages by using different build agents in different stages of the build process.
+Jenkins supports multiple build agents, which can be used to run build jobs on different platforms and with different configurations.
+
+
+9Q.  How to setup auto-scaling group for Jenkins in AWS ?
+Here is a high-level overview of how to set up an autoscaling group for Jenkins in Amazon Web Services (AWS):
+1. Launch EC2 instances: Create an EC2 instance with the desired configuration and install Jenkins on it. This instance will be used as the base image for the autoscaling group.
+2. Create Launch Configuration: Create a launch configuration in AWS Auto Scaling that specifies the EC2 instance type, the base image (created in step 1), and any additional configuration settings such as storage, security groups, and key pairs.
+3. Create Autoscaling Group: Create an autoscaling group in AWS Auto Scaling and specify the launch configuration created in step 2. Also, specify the desired number of instances, the minimum number of instances, and the maximum number of instances for the autoscaling group.
+4. Configure Scaling Policy: Configure a scaling policy for the autoscaling group to determine when new instances should be added or removed from the group. This can be based on the average CPU utilization of the instances or other performance metrics.
+5. Load Balancer: Create a load balancer in ELB and configure it to forward traffic to the autoscaling group.
+6. Connect to Jenkins: Connect to the Jenkins instance using the load balancer endpoint or the public IP address of one of the instances in the autoscaling group.
+7. Monitoring: Monitor the instances in the autoscaling group using Amazon CloudWatch to ensure that they are healthy and that the autoscaling policy is functioning as expected.
+
+ By using an autoscaling group for Jenkins, you can ensure that you have the appropriate number of instances available to handle the load on your build processes, and that new instances can be added or removed automatically as needed. This helps to ensure the reliability and scalability of your Jenkins environment.
+
+Note: Dynamic Agent Provisioning:
+Jenkins supports plugins like the EC2 Plugin or Amazon EC2 Container Service (ECS) Plugin, which allow for dynamic provisioning of agents in AWS, including within an ASG. These plugins can automatically provision and terminate agents based on the current load, and they often use AWS credentials and settings to launch instances from a specified AMI.
+
+10Q. How to add a new worker node in Jenkins ?
+Log into the Jenkins master and navigate to Manage Jenkins > Manage Nodes > New Node. Enter a name for the new node and select Permanent Agent. Configure SSH and click on Launch.
+
+
+11Q. How to add a new plugin in Jenkins ?
+Using the CLI --> java -jar jenkins-cli.jar install-plugin <PLUGIN_NAME>
+Using the UI --> Click on the "Manage Jenkins" --> "Manage Plugins" --> install 
+
+
+12Q. What is JNLP and why is it used in Jenkins ?
+Jenkins master uses JNLP(Java network launch protocol) service on port 50000 to connect to slaves for dispatching jobs.
+When a Jenkins agent is launched using JNLP, it connects to the Jenkins master and receives build tasks, which it then executes. The results of the build are then sent back to the master and displayed in the Jenkins user interface.
+
+
+13Q. What are some of the common plugins that you use in Jenkins ?
+Role based auth strategy, git, maven, sonar-cli, nexus platform, generic-webhooc-trigger, kubernetes-cli, embeddable-build-status,post-build-steps
 
