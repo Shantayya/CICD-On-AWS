@@ -22,7 +22,7 @@ Slave node configuration
 17. visudo
 jenkins	ALL=(ALL)	NOPASSWD: ALL
 save file
-18. vi /etc/ssh/ssh_config
+18. vi /etc/ssh/sshd_config
 make PasswordAuthentication Yes
 19. service sshd reload
 20. exit as root
