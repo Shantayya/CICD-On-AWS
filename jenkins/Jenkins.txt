@@ -61,8 +61,8 @@ other job types include:
 
 
 --Env variables---
-in Jenkins Pipeline, there are lot of env variables  that can  be accessed and maintained during buid execution. can be seen at jenkins-url/env-vars.html
-ech "JOB_NAME=${JOB_NAME}"
+in Jenkins Pipeline, there are lot of env variables  that can  be accessed and maintained during build execution. can be seen at jenkins-url/env-vars.html
+echo "JOB_NAME=${JOB_NAME}"
 
 ---Manage Jenkins--- (core configuration stored in config.xml under /var/lib/jenkins)
 system configuration:
@@ -176,6 +176,29 @@ Build steps:
 Post Build actions:
 
 
+-------------------Jenkins configuration as code JCasc-----------------------
+Jenkins as code refers to the practice of defining and configuring jenkins using code. Instead of manually configuring jenkins through user interface, Jcasc allows you to specify its configuration using prg language or declarative file. 
+
+1. say we have installed jenkins
+2. we have to install plugins so we will put plugins list in .txt file
+3. write bash script to iterate through file and install plugins using jenkins-cli
+for plugin in $(cat plugins.txt) 
+do
+ java -jar jenkins-cli.jar -s http://your-jenkins-url -auth admin:password install-plugin $plugin
+done
+java -jar jenkins-cli.jar -s http://your-jenkins-url -auth admin:password safe-restart
+
+---configure jenkins----
+1. Create a yaml file which includes configuration for:
+  1. env variable 
+  2. Credentials
+  3. Tool configuration 
+  4. Freestyle and pipeline jobs
+save above file at location which is accessible to jenkins (/var/lib/jenkins)
+2. Manage-jenkins --> Configuration as code (plugin.txt should have configuration as code plugin) --> put yaml file location ---> click on "Apply new configuration" 
+ (reload existing configuraton, view configuration, Download configuration) 
+
+----------------------------------------------------------------------------------------
 
 ---Git Integration with Jenkins-----
 1. download Git in Jenkins vm if Jenkins running as service
@@ -183,7 +206,7 @@ Post Build actions:
 3. use shell under build steps (git clone $USER:$PASS@url)		--> $USER and $PASS env var defined under build environment --> secret text or fields
 
 or 
-1. manage jenkins --> plugin --> download GIT without restart
+1. manage jenkins --> manage plugin --> download GIT without restart
 2. provide Git executable path in Global tool configuration under GIT section if GIT already exist on jekins machine or auto download
 3. check SCM  --> Git option by providing repo url and branch 
 
@@ -194,7 +217,7 @@ or
 3. use shell under build step to build maven projects by specifying maven goals
 
 or
-1. manage jenkins -> plugins --> download maven integration plugin
+1. manage jenkins -> manage plugins --> download maven integration plugin
 2. manage jenkins --> global tool configuration --> maven configuration section --> provide maven variable name and path if maven is already available in jenkins machine otherwise select auto download with correct maven version 
 3. select invoke top level maven under build steps by specifying goals
 
@@ -282,7 +305,7 @@ Build parameters allows you to pass data into jenkins job. Supported parameters 
 In FreeStyle job,you can access parameter just like any env variable ${PARAMETER_NAME}
 
 curl --user admin(user):token "JENKINS_URL/jobs/jobname/buildWithParameters?Token=test123&IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
-curl -X POST --user admin(user):token "JENKINS_URL/jobs/jobname/build?Token=test123" --data "IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
+curl -X POST --user admin(user):token "JENKINS_URL/jobs/jobname/buildWithParameters?Token=test123" --data "IMAGE_NAME=test&IMAGE_TAG=1.11&ENVIRONMENT=PROD"
 
 ---Active choices plugin---
 used in parameterized freestyle jenkins job to create scripted,dynamic and interactive job parameters. Active choices parameters can be dynamically updated and can be 
@@ -315,7 +338,7 @@ main.py
 #import libraries
 import json
 import requests
-imort requests.auth
+import requests.auth
 import HTTPBasicAuth
 
 #read json file
@@ -397,7 +420,7 @@ jobs --> job_name --> configure -> generic-webhook --> provide token value --> p
 
 repo --> settings --> webhook --> add webhook --> JENKINS_URL/generic-webhook-trigger/invoke?Token=TOKEN_VALUE 
 
-2. send Jenkins build status to jenkins
+2. send Jenkins build status to Github
 Build actions --> post build task --> Log text as SUCCESS/FAILURE, script as below command  
 
 curl -u USERNAME:USER_TOKEN(GitHub) -X POST "https://api.github.com/repos/GITHUB_USERNAME/REPO_NAME/statuses/COMMIT_ID" -H
@@ -465,7 +488,7 @@ PATH=$PATH:$M2_HOME/bin
 
 ----shell commands inside pipeline-----
 pipeline{
- agent any
+ agent any/None/Label/Docker
  stages{
    stage('Build'{
      steps{
@@ -558,6 +581,7 @@ pipeline{
 
 
 Note: if var contains username and password then we can use var_USR and var_PASS to separate username and password in jenkins. 
+if you are using env variable under script{} then always use env.VAR_NAME to access env variable otherwise it will not work
 
 1. credentials()					--> expose sensitive info in logs plus globa scope if defined in global environment block
 GIT_CREDS = credentials('GIT_USR_PASS')
@@ -570,6 +594,164 @@ withCredentials([usernamePassword(crdentialsId:'git_usr_pass', passwordVariable:
  }
 
 while both methods achieve the same purpose, using withCredentials() is often considered a best practice for handling credentials in Jenkins pipelines.
+
+----parallel block---------------
+A stage must have one and only one of steps, stages, parallel, or matrix. It is not possible to nest a parallel or matrix block within a stage directive if that stage directive is nested within a parallel or matrix block itself. However, a stage directive within a parallel or matrix block can use all other functionality of a stage, including agent, tools, when, etc.
+
+Note: you can force your parallel stages to all be aborted when any one of them fails, by adding failFast true to the stage containing the parallel. Another option for adding failfast is adding an option to the pipeline definition: parallelsAlwaysFailFast().
+
+example: 
+pipeline {
+    agent any
+    options{
+       parallelAlwaysFailFast()
+    }
+    stages {
+        stage('Non-Parallel Stage') {
+            steps {
+                echo 'This stage will be executed first.'
+            }
+        }
+        stage('Parallel Stage') {
+            when {
+                branch 'master'
+            }
+            failFast true						or 
+            parallel {
+                stage('Branch A') {
+                    agent {
+                        label "for-branch-a"
+                    }
+                    steps {
+                        echo "On Branch A"
+                    }
+                }
+                stage('Branch B') {
+                    agent {
+                        label "for-branch-b"
+                    }
+                    steps {
+                        echo "On Branch B"
+                    }
+                }
+                stage('Branch C') {
+                    agent {
+                        label "for-branch-c"
+                    }
+                    stages {
+                        stage('Nested 1') {
+                            steps {
+                                echo "In stage Nested 1 within Branch C"
+                            }
+                        }
+                        stage('Nested 2') {
+                            steps {
+                                echo "In stage Nested 2 within Branch C"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+---------matrix feature------------
+The Jenkins matrix feature allows you to execute a set of build steps in multiple configurations, often referred to as "axes". It's particularly useful when you want to test your software across different environments, platforms, or configurations.
+
+The matrix section must include an axes section and a stages section. The axes section defines the values for each axis in the matrix. The stages section defines a list of stages to run sequentially in each cell.
+
+axes:
+The axes section specifies one or more axis directives. Each axis consists of a name and a list of values. All the values from each axis are combined with the others to produce the cells.
+
+stages:
+The stages section specifies one or more stages to be executed sequentially in each cell.
+
+Example- One-axis with 3 cells, each cell runs three stages - "build", "test", and "deploy"
+matrix {
+    axes {
+        axis {
+            name 'PLATFORM'
+            values 'linux', 'mac', 'windows'
+        }
+    }
+    stages {
+        stage('build') {
+            // ...
+        }
+        stage('test') {
+            // ...
+        }
+        stage('deploy') {
+            // ...
+        }
+    }
+}
+
+Example: Complete martrix example
+pipeline {
+    parameters {
+        choice(name: 'PLATFORM_FILTER', choices: ['all', 'linux', 'windows', 'mac'], description: 'Run on specific platform')
+    }
+    agent none
+    stages {
+        stage('BuildAndTest') {
+            matrix {
+                agent {
+                    label "${PLATFORM}-agent"
+                }
+                when { anyOf {
+                    expression { params.PLATFORM_FILTER == 'all' }
+                    expression { params.PLATFORM_FILTER == env.PLATFORM }
+                } }
+                axes {
+                    axis {
+                        name 'PLATFORM'
+                        values 'linux', 'windows', 'mac'
+                    }
+                    axis {
+                        name 'BROWSER'
+                        values 'firefox', 'chrome', 'safari', 'edge'
+                    }
+                }
+                excludes {
+                    exclude {
+                        axis {
+                            name 'PLATFORM'
+                            values 'linux'
+                        }
+                        axis {
+                            name 'BROWSER'
+                            values 'safari'
+                        }
+                    }
+                    exclude {
+                        axis {
+                            name 'PLATFORM'
+                            notValues 'windows'
+                        }
+                        axis {
+                            name 'BROWSER'
+                            values 'edge'
+                        }
+                    }
+                }
+                stages {
+                    stage('Build') {
+                        steps {
+                            echo "Do Build for ${PLATFORM} - ${BROWSER}"
+                        }
+                    }
+                    stage('Test') {
+                        steps {
+                            echo "Do Test for ${PLATFORM} - ${BROWSER}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 ------Deploying on pods------
@@ -1735,6 +1917,8 @@ stage{
 
 
 
+
+
 -------------------------------------Interview Questions---------------------------------
 1Q. Whats the difference between Matrix based security and RBAC?
 Matrix-based security and Role-Based Access Control (RBAC) in Jenkins serve similar purposes but have some differences in terms of implementation and granularity of access control.
@@ -1781,7 +1965,7 @@ Basically 2 ways we can backup jenkins
 One can schedule the backups to occur regularly, such as daily or weekly, to ensure that you always have a recent copy of your Jenkins environment available.
 
 
-5Q. How can we restore the job cnfiguration or version control it?
+5Q. How can we restore the job configuration or version control it?
 We can version-control your Jenkins configuration using the Jenkins Job Configuration History plugin.
 
 
@@ -1840,3 +2024,23 @@ When a Jenkins agent is launched using JNLP, it connects to the Jenkins master a
 13Q. What are some of the common plugins that you use in Jenkins ?
 Role based auth strategy, git, maven, sonar-cli, nexus platform, generic-webhooc-trigger, kubernetes-cli, embeddable-build-status,post-build-steps
 
+14. How do you upgrade Jenkins?
+15. What is called a Parameterised Job in Jenkins ?
+16. How do you manage space issues in the Jenkins server?
+17. what is called a multibranch project in the Jenkins server ?
+18. How do you secure the Jenkins server?
+19. What is called Jenkins File?
+20. How do you configure the job in Jenkins?
+21. Where do you find errors in Jenkins?
+22. How do you integrate sonar Qube in Jenkins?
+23. In Jenkins how can you find log files?
+24. Jenkins workflow and write a script for this workflow.
+25. Write a script for how to push the repository and build the job in Jenkins.
+26. How to build a job in Jenkins?
+27. How to create a continuous deployment in Jenkins?
+28. In Jenkins how to give backup from one server to another server?
+29. Why do we use a pipeline in Jenkins? Flow?
+30. Say your jenkins jobs were deleted mistakenly and you want to recover all jobs so how do you achieve it? jenkins casc
+31. How do you configure ansible in Jenkins?
+
+please give me answers for above interview questions as per your knowledge. I dont want theorotical answer please

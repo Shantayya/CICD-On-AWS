@@ -14,12 +14,14 @@ pipeline {
     }
 
     options {
-        buildDiscarder(....)
+        buildDiscarder(logRotator(numToKeepStr: '10'))
         disableConcurrentBuilds()
-        skipDefaultCheckout(..)
-        timeout(time: digit, unit: 'HOURS')
-        retry(number)
+        skipDefaultCheckout(true)
+        timeout(time: 1, unit: 'HOURS')
+        retry(3)
+        quietPeriod(number)
         timestamps()
+	
     }
 
     parameters {
@@ -65,9 +67,14 @@ pipeline {
                 // Define stage-specific tool versions here
             }
             when {
-                expression { params.STRING_PARAM == 'example' }
+                expression { params.STRING_PARAM == 'example' or branch '' }		--> branch parameter works ony for multibranch pipeline
             }
             steps {
+                input{						--> for approval
+			messege ''
+                        ok ''
+                        submitter ''
+                     }
                 script {
                     // Your stage-specific script goes here
                     echo 'Hello, world!'
@@ -95,6 +102,14 @@ pipeline {
                     echo 'This will run when the build status changes'
                 }
             }
+	 parallel{		--> to execute stages parallely 		
+             stage{
+		 steps{ }
+                  }
+             stage{
+                  steps{}
+                  }
+                }
         }
     }
 }

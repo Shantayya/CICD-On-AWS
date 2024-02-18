@@ -1,0 +1,220 @@
+user: represents an identity in the system 
+group: consist of one or more identities
+IAM Policy: its document which defines the permissions.  
+role: works same as user indentity however not attached to specific individual. instead it is assumed by entities such as IAM users, applications, or services to obtain temp credentials. Roles are useful when you want to grant permisison to entities external to your aws account or delegate access to resources across your acccount. 
+
+what is IaaS,PaaS and SaaS?
+IaaS (Infrastructure as a Service): Provides virtualized computing resources over the internet, allowing users to build and manage their own infrastructure. Example: Amazon EC2 (Elastic Compute Cloud).
+
+PaaS (Platform as a Service): Offers a platform allowing customers to develop, run, and manage applications without dealing with the underlying infrastructure. Example: AWS Elastic Beanstalk, Google App Engine
+
+SaaS (Software as a Service): Delivers software applications over the internet, usually on a subscription basis, eliminating the need for users to install and maintain the software locally. Example: Amazon WorkMail, Salesforce(CRM)
+
+Encryption: Amazon Web Services (AWS) provides various encryption options for securing data both at rest (stored data) and in transit (data being transferred between services or locations). 
+
+Server-Side Encryption (SSE): S3,EBS,RDS,EFS etc
+Responsibilities:
+1. AWS Managed Keys (SSE-S3): AWS manages the encryption keys used to encrypt and decrypt data stored in Amazon S3. You, as the customer, don't have access to these keys.
+2. KMS-Managed Keys (SSE-KMS): AWS manages the encryption keys, but you have more control over them through AWS Key Management Service (KMS). You can define access policies, rotate keys, and audit key usage.
+3. Customer-Provided Keys (SSE-C): You manage the encryption keys outside of AWS and provide them when uploading objects to S3. AWS uses these keys to encrypt and decrypt data, but it doesn't store them.
+
+Steps to Implement SSE:
+1. SSE-S3:
+Navigate to the Amazon S3 console.
+Create a new S3 bucket or select an existing one.
+In the bucket properties, enable default encryption and choose SSE-S3.
+Upload objects to the bucket, and they will be automatically encrypted.
+2. SSE-KMS:
+Open the Amazon S3 console.
+Create or select an S3 bucket.
+Enable default encryption and choose SSE-KMS.
+Select a KMS key to use for encryption.
+AWS will use this KMS key to encrypt objects stored in the bucket.
+3. SSE-C:
+Generate your encryption key outside of AWS.
+Use AWS SDK or AWS CLI to upload objects to S3, providing the encryption key during the upload process.
+When retrieving objects, provide the same encryption key to decrypt them.
+
+
+Key Management Service (KMS):
+Responsibilities:
+AWS manages the underlying infrastructure of the KMS service, including key storage and hardware security modules (HSMs).
+You are responsible for creating and managing keys, defining access policies, rotating keys regularly, and auditing key usage.
+
+Steps to Implement KMS:
+1. Create a KMS Key:
+Navigate to the AWS Key Management Service (KMS) console.
+Click "Create key" and choose the type of key (symmetric or asymmetric).
+Define key administrators, key usage permissions, and key policies.
+Once created, you'll receive a key ID which you can use to reference this key in encryption operations.
+
+2. Use the KMS Key for Encryption:
+When using AWS services that support KMS encryption (such as S3, EBS, RDS), specify the KMS key ID during configuration.
+AWS will use this KMS key to encrypt data at rest.
+
+3. Manage KMS Keys:
+Regularly review and update key policies to ensure only authorized users and services have access.
+Rotate keys periodically to enhance security.
+Monitor key usage and audit key actions to ensure compliance with security policies.
+
+
+Encryption in Transit:
+SSL/TLS: AWS services like Amazon CloudFront, Elastic Load Balancing, and Amazon API Gateway support SSL/TLS encryption to secure data transmission over the internet.
+
+Steps to implement SSL/TLS encryption: DigiCert
+Obtain an SSL/TLS certificate from a trusted Certificate Authority (CA).
+Configure SSL/TLS settings for your AWS service, including specifying the SSL certificate.
+Your data transmitted to and from the service will be encrypted.
+
+
+Encryption in transit:
+Enabling SSL termination at a load balancer in AWS:
+1. Navigate to the AWS Management Console:
+Log in to your AWS Management Console and navigate to the Amazon EC2 service.
+
+2. Choose Load Balancers:
+In the EC2 dashboard, select "Load Balancers" from the navigation pane on the left.
+
+3. Create or Select the Load Balancer:
+If you haven't already created a load balancer, click "Create Load Balancer" and follow the wizard to create a new load balancer.
+If you already have a load balancer, select it from the list.
+
+4. Enable SSL Termination:
+During load balancer creation or configuration, configure the listeners to accept HTTPS connections.
+If you're editing an existing load balancer, select the listener (port) that you want to configure for SSL termination and edit it to use HTTPS.
+
+5. Specify the SSL certificate to use for SSL termination:
+If you already have an SSL certificate uploaded to AWS Certificate Manager (ACM), you can select it from the dropdown menu.
+If not, you can upload a new SSL certificate to ACM or choose to use a certificate stored in AWS Identity and Access Management (IAM).
+
+6. Configure Security Groups and Routing:
+Ensure that the load balancer's security group allows inbound HTTPS traffic (port 443) from clients.
+Configure the load balancer's routing rules to forward incoming HTTPS requests to the appropriate backend targets (e.g., EC2 instances).
+
+7. Update DNS Records (If Necessary):
+If your application's domain name points directly to the load balancer's DNS name, ensure that the DNS records are updated to reflect the HTTPS protocol (e.g., change from "http://example.com" to "https://example.com").
+
+8. Test SSL Termination:
+Once the load balancer is configured for SSL termination, test it by accessing your application using the HTTPS protocol.
+Verify that the SSL certificate is correctly presented by the load balancer and that the connection is secure.
+
+
+
+-------------------Cross account acess----------------------
+secure cross-account access mechanism where resources in Account A can access resources in Account B.
+The IAM role in Account B allows access to the S3 bucket and Secrets Manager.
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "arn:aws:s3:::your-s3-bucket/*",
+        "arn:aws:secretsmanager:us-east-1:account-b-id:secret:your-secret-name"
+      ]
+    }
+  ]
+}
+
+The trust relationship in Account B allows the IAM role to be assumed by Account A.
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::account-a-id:root"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+The IAM role policy in Account A allows assuming the IAM role in Account B.
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::account-b-id:role/your-role-name"
+    }
+  ]
+}
+
+This setup establishes a trust relationship between Account A and Account B, allowing resources in Account A (such as an EC2 instance) to access resources in Account B (S3 bucket and Secrets Manager) securely and with the appropriate permissions.
+
+
+-----------------------AWS Migration----------------
+Migration approaches: big bang(all in one go), staged(gradually move keeping old one), stangler(gradually replace)
+Conduct migration readiness assessment(MRA) typically encompasses activities that fall under the preparation and planning phases of migration.
+Stage 1: Preparation
+1. involves analyzing the existing infrastructure, applications, and data to understand their architecture, dependencies, compatibility with cloud platforms.
+2. identifying any potential challenges or constraints that need to be addressed before migration.
+3. Identifying potential risks associated with migration, including technical challenges, data security risks, compliance issues, and business continuity concerns.
+
+Stage 2: Planning
+1. Segmentation and Prioritization: Planning involves segmenting applications into migration phases based on criteria such as criticality and complexity.
+2. Strategy selection: Cloud migration strategies are selected based on application requirements. The choice of strategy depends on factors like business goals, existing technology stack, application complexity, and desired outcomes.
+3. Resource planning: Planning the resources, tools, and timelines required for migration. This includes identifying skill requirements, budget allocations, and selecting migration tools and services.
+
+Re-host (lift and shift) 
+	1. Move apps to AWS without code changes but with using aws IaaS offering. 
+	2. Ideal for quick migration to cloud before data center lease runs out.
+	3. Workforce learns cloud concepts while migration and use it modernize the app down the line. 
+	ex: onprem apps running on vm to aws ec2, onprem oracle db to oracle on ec2
+Re-platform:
+	1. Known as lift, tinker and shift (lift and reshape)
+	2. Make few optimization with core architecture unchanged. 
+	3. reduce time spent on managing infra.
+	4. more cost effective than rehosting.  
+	Ex: move on prem orace to AWS RDS
+Re-architecture (refactor):
+	1. refactor the apps using cloud native services
+	2. Driven by strong business need to scale and faster time to market.
+	3. More benfits than rehost and replatform, but takes more time.  
+	ex: monolith to microservice, containerize apps
+Relocate:
+	1. Known as hypervisor level lift and shift. 
+	2. Move apps to aws without any changes(purchasing new hardware or rewriting applications or modifying your existing operation) 
+	Ex: on-prem vm to aws vm	
+Retire: 
+	1. Remove apps no longer needed
+	2. Allow more attention to appropriate apps
+Retain:
+	1. Do nothing for now
+	2. Apps will be deprecated, not prioritized, not much business sense to migrate
+Repurchase:
+	1. Moving from traditional license  to SaaS model 
+	Ex: Moving CSM to salesforce, HR system to Workday
+
+Stage 3: Migration
+1. Execution of migration phases.
+2. Implementation of chosen cloud migration strategy.
+3. Tools and scripts for migration automation.
+4. Monitoring and testing during migration.
+You can use strategies like blue-green deployments, canary releases, and traffic shifting to minimize downtime and ensure a smooth migration process.
+
+
+Stage 4: Monitoring
+1. Post-migration monitoring of applications.
+2. Performance evaluation and feedback collection.
+3. Creation of dashboards and metrics for monitoring.
+4. Duration of monitoring phase based on application criticality.
+
+Stage 5: Optimization
+1. Evaluation of migration outcomes.
+2. Cost optimization.
+3. Maintenance overhead reduction.
+4. Scalability and availability improvements.
+5. Identification of areas for further optimization.
+6. Planning for ongoing optimization efforts.
+
+decomission on prem infra post successful migration. 
+
+Note:  Several tools available to check dependencies in AWS cloud migration from on-premises infrastructure such as AWS Application Discovery Service, CloudScape, CloudSpectator, and Cloudamize. 
